@@ -1,0 +1,34 @@
+# entorno.txt - 2026-10-24 00:25:44 -0600
+
+== Sistema ==
+Ubuntu 24.04.5 LTS
+6.18.54.1-microsoft-standard-WSL2
+systemd: running
+RAM: 7.6Gi · CPU lógicas: 16 · disco libre: 954G
+
+== Docker Engine (no Docker Desktop) ==
+docker is /usr/bin/docker
+docker is /bin/docker
+docker is /mnt/c/Program Files/Docker/Docker/resources/bin/docker
+Docker version 29.9.2, build a82e528
+Docker Compose version v5.6.1
+ Server Version: 29.9.2
+ Storage Driver: overlayfs
+ Cgroup Driver: systemd
+ Runtimes: io.containerd.runc.v2 nvidia runc
+ Default Runtime: runc
+ Firewall Backend: iptables
+iptables: iptables v1.8.10 (nf_tables)
+ip_forward: 1 · bridge-nf-call-iptables: 1
+
+== WireGuard en el kernel (cierra la verificación previa al Día 4) ==
+wireguard              90112  0
+
+== GPU en WSL (driver de Windows, sin driver Linux) ==
+name, driver_version, memory.total [MiB], memory.used [MiB]
+NVIDIA GeForce RTX 3060 Laptop GPU, 610.88, 6144 MiB, 636 MiB
+
+== GPU dentro de un contenedor (nvidia-container-toolkit) ==
+NVIDIA Container Toolkit CLI version 1.20.1
+name, driver_version, memory.total [MiB], memory.used [MiB]
+NVIDIA GeForce RTX 3060 Laptop GPU, 610.88, 6144 MiB, 636 MiB
