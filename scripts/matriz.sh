@@ -59,7 +59,7 @@ for ((i=0; i<n; i++)); do
 done
 wait
 
-fallas=0
+fallas=0; bloq_filtro=0; bloq_ruta=0
 {
   echo "# Matriz de alcanzabilidad · topología $TOPO"
   echo
@@ -70,6 +70,8 @@ fallas=0
   for ((i=0; i<n; i++)); do
     obs="$(<"$TMP/$i")"
     if [[ $obs == abierto ]]; then real=permitir; else real=bloquear; fi
+    # "sin-ruta": el paquete no sale del origen (segmento internal); ninguna regla lo ve.
+    if [[ $obs == sin-ruta ]]; then bloq_ruta=$((bloq_ruta+1)); elif [[ $obs != abierto ]]; then bloq_filtro=$((bloq_filtro+1)); fi
     if [[ $real == "${ESPERADOS[i]}" ]]; then res="✅ OK"; else res="❌ FALLA"; fallas=$((fallas+1)); fi
     echo "| ${IDS[i]} | ${CELDAS[i]} | ${ORIG[i]} → ${DEST[i]} (${IPS[i]}):${PUERTOS[i]} | ${ESPERADOS[i]} | $obs | $res |"
   done
@@ -79,6 +81,8 @@ fallas=0
   if [[ $codigo == 200 ]]; then res="✅ OK"; else res="❌ FALLA"; fallas=$((fallas+1)); fi
   n=$((n+1))
   echo "Comprobación adicional · Admin resuelve y abre \`https://github.com\` (esperado HTTP 200): obtenido \`$codigo\` · $res"
+  echo
+  echo "**Bloqueos observados:** $((bloq_filtro+bloq_ruta)) · descartados por el filtrado del kernel: $bloq_filtro · sin ruta desde el origen (segmentos \`internal\`): $bloq_ruta"
   echo
   echo "**Casos:** $n · **Fallas:** $fallas"
 } > "$SALIDA"

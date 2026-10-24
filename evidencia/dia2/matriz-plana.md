@@ -1,6 +1,6 @@
 # Matriz de alcanzabilidad · topología plana
 
-Generada 2026-10-24 00:38:16 -0600 con `scripts/matriz.sh plana` (política: docs/02-diseno.md §5).
+Generada 2026-10-24 00:47:45 -0600 con `scripts/matriz.sh plana` (política: docs/02-diseno.md §5).
 
 | Caso | Celda de §5 | Origen → destino:puerto | Esperado | Observado | Resultado |
 |---|---|---|---|---|---|
@@ -34,5 +34,7 @@ Generada 2026-10-24 00:38:16 -0600 con `scripts/matriz.sh plana` (política: doc
 | G08 | Invitados→Internet | invitado → 1.1.1.1 (1.1.1.1):443 | permitir | abierto | ✅ OK |
 
 Comprobación adicional · Admin resuelve y abre `https://github.com` (esperado HTTP 200): obtenido `200` · ✅ OK
+
+**Bloqueos observados:** 0 · descartados por el filtrado del kernel: 0 · sin ruta desde el origen (segmentos `internal`): 0
 
 **Casos:** 29 · **Fallas:** 0

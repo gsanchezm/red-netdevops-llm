@@ -45,7 +45,8 @@ scripts/lab.sh apagar            # baja todo y descarga netseg
 ```
 
 Usar siempre `docker compose` (plugin v2). En Ubuntu, `docker-compose` con guion resuelve al
-binario de Windows heredado por el `PATH`.
+binario de Windows heredado por el `PATH`. La matriz necesita internet real: prueba la salida
+contra `1.1.1.1` y `https://github.com`.
 
 ## 4. Resultados
 
@@ -76,14 +77,23 @@ El kernel evalúa, en este orden, tres conjuntos de reglas; un `drop` en cualqui
 | 2 | **`netseg`** · `forward` (prioridad −10) | La política del proyecto. Única que cubre los destinos del segmento de IA, la salida de Admin y "Ollama nunca inicia" |
 | 3 | Docker · `filter` (prioridad 0) | Aislamiento entre bridges y redes `internal`: respaldo |
 
-Hallazgo: tras la matriz, `netseg` contó 12 paquetes en su *drop* por defecto y las reglas
-DROP de la capa 3 quedaron en cero, pero los flujos hacia Trabajo, Invitados y Admin los
-detuvo antes la capa 1 (sus contadores suman 48). Por eso la afirmación defendible no es
-"netseg detiene todo", sino que **la política de `netseg` es completa por sí sola**: con las
-reglas DROP de Docker retiradas en caliente, la matriz sigue pasando 35/35. Eso es lo que
-permite llevarla a un router sin Docker (`02-diseno.md` §9). `log-descartes.txt` muestra
-los descartes registrados por el kernel, p. ej. `IN=br-ia OUT=br-ia SRC=10.10.20.10 DST=10.10.20.5`
-(Ollama intentando iniciar una conexión).
+Hallazgo: de los **23 bloqueos** de la matriz segmentada (una sola ejecución, contadores en cero):
+
+- **9 no llegan a ningún filtro**: `ollama` y `cliente-remoto` viven en redes `internal` sin ruta
+  por defecto, así que el paquete no sale del contenedor (`Network unreachable`; casos I03–I05
+  y E01–E06). Es el efecto buscado de D4. En un router real esos paquetes sí llegarían a
+  `forward`, donde la política *drop* los cubriría; aquí no se puede probar.
+- **8 los descarta la capa 1** (destino en Trabajo, Invitados o Admin): 16 paquetes = 8 flujos × 2 SYN.
+- **6 los descarta `netseg`** (12 paquetes): Trabajo, Invitados y Admin → IA, Ollama → Caddy
+  y Admin → TCP 80. Las reglas DROP de la capa 3 quedan en cero.
+
+Por eso la afirmación defendible no es "netseg detiene todo", sino que **la política de `netseg`
+es completa por sí sola para los 14 flujos que llegan al filtrado**: con las reglas DROP de Docker
+retiradas en caliente (`scripts/netseg-sola.sh`, que además recrea el laboratorio y comprueba que
+vuelven las 11 + 3 + 4 reglas), la matriz sigue pasando 35/35. Eso es lo que permite llevar la
+política a un router sin Docker (`02-diseno.md` §9). `log-descartes.txt` muestra los descartes
+registrados por el kernel, p. ej. `IN=br-ia OUT=br-ia SRC=10.10.20.10 DST=10.10.20.5` (Ollama
+intentando iniciar una conexión).
 
 ## 5. Observaciones de operación
 

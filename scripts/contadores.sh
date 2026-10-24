@@ -17,7 +17,7 @@ SUDO=""; [[ $EUID -ne 0 ]] && SUDO="sudo"
 $SUDO nft list table inet netseg >/dev/null 2>&1 || { echo "La tabla netseg no está cargada: scripts/lab.sh segmentada" >&2; exit 2; }
 
 "$RAIZ/scripts/lab.sh" nft-cargar >/dev/null     # recarga la tabla: contadores en cero
-$SUDO iptables -Z; $SUDO ip6tables -Z
+$SUDO iptables -Z; $SUDO iptables -t raw -Z; $SUDO ip6tables -Z   # filter y raw (iptables -Z solo toca filter)
 bash "$RAIZ/scripts/matriz.sh" segmentada /dev/null >/dev/null
 resultado=$?
 [[ $resultado -le 1 ]] || { echo "La matriz no pudo ejecutarse (código $resultado)" >&2; exit 2; }

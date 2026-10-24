@@ -1,6 +1,6 @@
 # Matriz de alcanzabilidad · topología segmentada SIN netseg (solo reglas de Docker) · estado RED
 
-Generada 2026-10-24 00:36:57 -0600 con `scripts/matriz.sh segmentada` (política: docs/02-diseno.md §5).
+Generada 2026-10-24 00:46:20 -0600 con `scripts/matriz.sh segmentada` (política: docs/02-diseno.md §5).
 
 | Caso | Celda de §5 | Origen → destino:puerto | Esperado | Observado | Resultado |
 |---|---|---|---|---|---|
@@ -40,5 +40,7 @@ Generada 2026-10-24 00:36:57 -0600 con `scripts/matriz.sh segmentada` (política
 | E06 | Internet→Internet | cliente-remoto → 1.1.1.1 (1.1.1.1):443 | bloquear | sin-ruta | ✅ OK |
 
 Comprobación adicional · Admin resuelve y abre `https://github.com` (esperado HTTP 200): obtenido `200` · ✅ OK
+
+**Bloqueos observados:** 21 · descartados por el filtrado del kernel: 12 · sin ruta desde el origen (segmentos `internal`): 9
 
 **Casos:** 35 · **Fallas:** 2

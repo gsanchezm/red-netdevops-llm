@@ -18,19 +18,32 @@ retirar_drop() { # tabla cadena
     iptables -t "$1" ${regla/-A/-D}
   done
 }
+reglas_drop() { # "raw=N DOCKER=N DOCKER-INTERNAL=N"
+  echo "raw=$(iptables -t raw -S PREROUTING | grep -c -- '-j DROP')" \
+       "DOCKER=$(iptables -S DOCKER | grep -c -- '-j DROP')" \
+       "DOCKER-INTERNAL=$(iptables -S DOCKER-INTERNAL | grep -c -- '-j DROP')"
+}
 
-echo "Reglas DROP de Docker antes: raw=$(iptables -t raw -S PREROUTING | grep -c -- '-j DROP')" \
-     "DOCKER=$(iptables -S DOCKER | grep -c -- '-j DROP') DOCKER-INTERNAL=$(iptables -S DOCKER-INTERNAL | grep -c -- '-j DROP')"
+antes="$(reglas_drop)"
+echo "Reglas DROP de Docker antes:   $antes"
 retirar_drop raw PREROUTING
 retirar_drop filter DOCKER
 retirar_drop filter DOCKER-INTERNAL
-echo "Reglas DROP de Docker después: raw=$(iptables -t raw -S PREROUTING | grep -c -- '-j DROP')" \
-     "DOCKER=$(iptables -S DOCKER | grep -c -- '-j DROP') DOCKER-INTERNAL=$(iptables -S DOCKER-INTERNAL | grep -c -- '-j DROP')"
+echo "Reglas DROP de Docker después: $(reglas_drop)"
 
 bash "$RAIZ/scripts/matriz.sh" segmentada "$SALIDA" | tail -4
 resultado=${PIPESTATUS[0]}
 sed -i '1s/.*/# Matriz de alcanzabilidad · topología segmentada SOLO con netseg (reglas DROP de Docker retiradas)/' "$SALIDA"
 
-echo "Restaurando el laboratorio (Docker vuelve a crear sus reglas)..."
+# Docker solo crea sus reglas al crear redes y contenedores: restaurar exige recrearlos
+# (un `compose up` sobre contenedores intactos no vuelve a instalarlas).
+echo "Restaurando el laboratorio (se recrean redes y contenedores)..."
+"$RAIZ/scripts/lab.sh" apagar >/dev/null 2>&1
 "$RAIZ/scripts/lab.sh" segmentada >/dev/null 2>&1
+despues="$(reglas_drop)"
+echo "Reglas DROP de Docker restauradas: $despues"
+if [[ $despues != "$antes" ]]; then
+  echo "ERROR: el laboratorio no quedó como estaba (esperado: $antes)" >&2
+  exit 3
+fi
 exit "$resultado"
