@@ -133,6 +133,8 @@ intentando iniciar una conexión).
 | Filas VPN emulada y VPN real de la matriz (`wg0`, `wg1`) y UDP 51820 al host | Día 4 |
 | Latencia ICMP intra e inter-segmento y `iperf3`: el costo de enrutar y filtrar se mide aquí contra la plana | Día 6 |
 | `netseg` como servicio de systemd y Ansible | Día 5 |
+| Verificar con un apretón de manos que el certificado de Caddy cubre `10.10.50.1` y `10.10.51.2` (`openssl s_client`) | Día 4, cuando existan `wg0` y `wg1` |
+| Calidad de Hermes con un modelo de 2 B para llamar herramientas; reintentar `qwen3.5:4b` | Día 6 |
 
 ## 7. Servicios reales: Ollama y Caddy (Día 3)
 
@@ -196,7 +198,9 @@ crear el contenedor.
 ### 7.4 Hermes Agent en Admin
 
 Hermes v0.22.5 (imagen oficial fijada por digest) vive solo en la VLAN 99 (`10.10.99.20`). Se
-opera por `docker exec hermes hermes chat -q "..." -Q`; no se activa ninguna pasarela de chat.
+opera por `docker exec hermes hermes chat -q "..." -Q`. La imagen arranca por defecto su
+pasarela (`gateway-default`) y un panel, pero sin ninguna plataforma de chat configurada y
+escuchando solo en loopback; no se activa el panel web ni se publica ningún puerto.
 Lo que `scripts/hermes-prueba.sh` comprueba (`evidencia/dia3/hermes.txt`):
 
 - **Llega a la IA solo por Caddy con TLS**: `https://ia.lab.internal/v1`, aceptando la CA interna
@@ -222,8 +226,9 @@ Durante el Día 3 la VM de WSL se cayó una vez (volcado de *kernel panic* en
 `%TEMP%\wsl-crashes`) y Windows mostró "Sin memoria virtual". La causa no es la RAM libre sino el
 **límite de commit** (RAM + archivo de paginación = 63.7 GB), del que el uso normal de la máquina
 ya consume ≈ 53 GB. `vmmemWSL` llegó a 11.2 GB: los 7.8 GB de RAM de la VM, que se llenan de
-caché de disco al descargar modelos, más ≈ 3.4 GB que Windows reserva como respaldo de lo cargado
-en la GPU. Medido: **cargar el modelo cuesta ≈ 3.7 GB de commit**, y el caché de prompts de
+caché de disco al descargar modelos, más unos 3.4 GB que, según la hipótesis más probable, Windows
+reserva como respaldo de lo cargado en la GPU (no se midió por separado). Medido: **cargar el
+modelo cuesta ≈ 3.7 GB de commit**, y el caché de prompts de
 llama.cpp (hasta 8 GB por defecto) lo agravaba con contextos largos. Mitigaciones aplicadas:
 
 - `LLAMA_ARG_CACHE_RAM=1024` acota ese caché (Ollama lo pasa al runner; el log confirma `size limit: 1024 MiB`).
