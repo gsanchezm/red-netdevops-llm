@@ -235,5 +235,19 @@ llama.cpp (hasta 8 GB por defecto) lo agravaba con contextos largos. Mitigacione
 - `OLLAMA_KEEP_ALIVE=5m`: el modelo no queda residente.
 - Liberar la caché de la VM tras descargas pesadas (`echo 3 > /proc/sys/vm/drop_caches`).
 
-Pendiente de decisión del usuario: un `.wslconfig` con `memory=5GB` y
-`autoMemoryReclaim=gradual` acotaría la VM de forma permanente (no se tocó).
+Además, el 24-oct se creó `%USERPROFILE%\.wslconfig` (fuera del repositorio; afecta a todas las
+distros de WSL) para acotar la VM de forma permanente:
+
+```ini
+[wsl2]
+memory=5GB
+
+[experimental]
+autoMemoryReclaim=gradual
+```
+
+Con ese tope se repitió la prueba más exigente (laboratorio completo, modelo cargado y una
+pregunta de Hermes): **0 eventos OOM** en la VM, memoria disponible mínima de 2.5 GB de 4.9 GB, y
+el margen mínimo de commit de Windows fue de **3.2 GB** (sin el tope había llegado a 1.2 GB). Para
+deshacerlo basta borrar el archivo y ejecutar `wsl --shutdown`. No se fijó `vmIdleTimeout`: sin
+sesiones abiertas WSL sigue apagando la VM, lo cual conviene mientras el laboratorio no se usa.

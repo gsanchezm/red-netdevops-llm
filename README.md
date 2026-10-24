@@ -25,6 +25,7 @@ docs/
   01-red-actual.md    Caso de estudio: inventario, topología, línea base, hallazgos
   02-diseno.md        Diseño objetivo: segmentos, IPs, matriz de flujos, decisiones, pruebas
   03-laboratorio.md   Laboratorio emulado: entorno, operación, resultados de la matriz
+  guia-droplet-digitalocean.md   Llave SSH, prueba de regiones, droplet y Cloud Firewall (Día 4)
   img/                Capturas y diagramas
 lab/
   compose.plana.yml, compose.segmentada.yml   Las dos topologías (Docker Compose)
@@ -39,6 +40,7 @@ evidencia/
   dia3/               Modelo a 64 K, candidatos, latencia de la API, Hermes y matrices
 scripts/
   linea-base.ps1      Captura de la línea base en Windows (solo lectura)
+  ping-regiones.ps1   Latencia hacia droplets de prueba para elegir la región (Día 4)
   wsl/                Aprovisionamiento de Ubuntu (Docker, GPU) y evidencia del entorno
   lab.sh, matriz.sh   Ciclo de vida del laboratorio y matriz de alcanzabilidad
   contadores.sh, netseg-sola.sh   Qué capa de filtrado detiene cada flujo

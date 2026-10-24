@@ -37,6 +37,10 @@ Kubernetes, Containerlab / 802.1Q emulado, monitoreo avanzado, SSO.
 
 ## Preparación antes del Día 4 (tarea del usuario)
 
+> **Guía paso a paso, con la creación del droplet, la prueba de regiones, el Cloud Firewall y
+> cómo destruirlo: [`guia-droplet-digitalocean.md`](guia-droplet-digitalocean.md).**
+> Lo de abajo es el resumen de lo que hay que hacer **antes** del Día 4.
+
 1. Crear una llave SSH **exclusiva del laboratorio**, con frase de contraseña (no reutilizar
    `id_ed25519`, que ya se usa para otros servicios):
 
@@ -44,7 +48,8 @@ Kubernetes, Containerlab / 802.1Q emulado, monitoreo avanzado, SSO.
    ssh-keygen -t ed25519 -a 100 -C "redes-lab-admin" -f "$env:USERPROFILE\.ssh\id_ed25519_redes_lab"
    ```
 
-2. Registrar la parte **pública** en DigitalOcean (Settings → Security → SSH Keys → Add SSH Key):
+2. Registrar la parte **pública** en DigitalOcean (Settings → Security → SSH Keys → Add SSH Key;
+   la llave se sube al equipo y se aplica a los droplets **al crearlos**):
 
    ```powershell
    Get-Content "$env:USERPROFILE\.ssh\id_ed25519_redes_lab.pub"
@@ -64,6 +69,11 @@ Ubuntu, con un usuario `deploy` en el droplet. Así se puede revocar sin tocar l
   (`~/red-netdevops-llm`), sincronizado con esta vía GitHub.
 
 ## Preparación realizada (24-oct-2026)
+
+- Memoria de WSL acotada (`~/.wslconfig`: `memory=5GB`, `autoMemoryReclaim=gradual`) tras
+  una caída por agotamiento del límite de commit de Windows; ver `03-laboratorio.md` §7.5.
+  Validado con el laboratorio completo, el modelo y Hermes: sin OOM y con un margen mínimo de
+  commit de 3.2 GB (antes llegó a 1.2 GB).
 
 - Docker Desktop limpio: imágenes, contenedores y caché de compilación borrados; se
   conservaron 9 volúmenes de bases de datos de otros proyectos (194 MB). Disco virtual
