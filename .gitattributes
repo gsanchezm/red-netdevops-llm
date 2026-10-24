@@ -1,0 +1,7 @@
+# El repo se edita en Windows pero se ejecuta en Linux (WSL2):
+# forzar LF evita que scripts, nftables y YAML se rompan por CRLF.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.docx binary

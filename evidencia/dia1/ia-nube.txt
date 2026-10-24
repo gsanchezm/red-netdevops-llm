@@ -1,0 +1,23 @@
+# ia-nube.txt - 2026-10-23 22:44:42
+Tiempos de conexión hacia api.anthropic.com (curl, segundos acumulados)
+dns = resolución, tcp = handshake TCP, tls = handshake TLS completo, total = respuesta HTTP
+
+== doble pila (comportamiento por defecto)
+dns=0.014388 tcp=0.256598 tls=0.309699 total=0.349699 http=404 ip=160.79.x.x
+dns=0.008145 tcp=0.252014 tls=0.303988 total=0.344944 http=404 ip=160.79.x.x
+dns=0.178695 tcp=0.248771 tls=0.300047 total=0.342621 http=404 ip=160.79.x.x
+dns=0.009178 tcp=0.263920 tls=0.314229 total=0.359399 http=404 ip=160.79.x.x
+dns=0.010991 tcp=0.252645 tls=0.306084 total=0.346266 http=404 ip=160.79.x.x
+
+== solo IPv4 (curl -4)
+dns=0.010492 tcp=0.049012 tls=0.100055 total=0.138271 http=404 ip=160.79.x.x
+dns=0.010919 tcp=0.047416 tls=0.100054 total=0.139637 http=404 ip=160.79.x.x
+dns=0.005493 tcp=0.044474 tls=0.093560 total=0.134512 http=404 ip=160.79.x.x
+dns=0.008381 tcp=0.047020 tls=0.098805 total=0.138356 http=404 ip=160.79.x.x
+dns=0.019860 tcp=0.060772 tls=0.111898 total=0.151855 http=404 ip=160.79.x.x
+
+Lectura: el Deco anuncia un prefijo IPv6 ULA (fd00::/8) sin salida a internet. Como el destino
+tiene registro AAAA, curl intenta IPv6 primero y cae a IPv4 tras ~200 ms (Happy Eyeballs, RFC 8305).
+La diferencia entre ambos modos es el costo de esa IPv6 "a medias" en cada conexión nueva.
+Se compara en el Día 3 contra la API local (Caddy + Ollama) dentro del laboratorio.
+

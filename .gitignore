@@ -1,0 +1,27 @@
+# Secretos: el repositorio es público. Las llaves de WireGuard, la CA de Caddy
+# y las contraseñas de Ansible se generan en el servidor y nunca se versionan.
+*.key
+*.pem
+*.crt
+privatekey
+publickey
+presharedkey
+wg*.conf
+.env
+*.env
+.vault_pass*
+secrets/
+
+# Datos de ejecución
+ollama-data/
+caddy-data/
+*.log
+__pycache__/
+.venv/
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+~$*

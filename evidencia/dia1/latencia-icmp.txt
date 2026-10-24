@@ -1,0 +1,7 @@
+# latencia-icmp.txt - 2026-10-23 22:44:30
+192.168.68.1    n=20 min=0 ms  prom=0.10 ms  max=1 ms  jitter(desv.est.)=0.30 ms  pérdida=0%
+192.168.100.1   n=20 min=1 ms  prom=1.15 ms  max=2 ms  jitter(desv.est.)=0.36 ms  pérdida=0%
+8.8.8.8         n=20 min=11 ms  prom=12.70 ms  max=15 ms  jitter(desv.est.)=0.84 ms  pérdida=0%
+
+Nota: Windows reporta la latencia ICMP con resolución de 1 ms; valores de 0 significan < 1 ms.
+

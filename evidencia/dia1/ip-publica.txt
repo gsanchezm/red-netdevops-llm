@@ -1,0 +1,5 @@
+# ip-publica.txt - 2026-10-23 22:44:39
+IP pública vista desde internet: 189.203.x.x
+Rango CGNAT (RFC 6598) = 100.64.0.0/10. Para descartarlo hay que comparar con la IP WAN del módem;
+no se requiere en este proyecto porque el acceso VPN se valida en el laboratorio emulado.
+

@@ -1,0 +1,24 @@
+# interfaces.txt - 2026-10-23 22:53:04
+== Adaptadores activos
+
+Name                       InterfaceDescription                     LinkSpeed MacAddress
+----                       --------------------                     --------- ----------
+Ethernet                   Killer E2600 Gigabit Ethernet Controller 1 Gbps    B4-45-06-xx-xx-xx
+vEthernet (Default Switch) Hyper-V Virtual Ethernet Adapter         10 Gbps   00-15-5D-xx-xx-xx
+
+== Configuración IPv4 de la interfaz con gateway
+
+InterfaceAlias : Ethernet
+IPv4           : 192.168.68.158
+Prefijo        : 24
+Gateway        : 192.168.68.1
+DNS            : 192.168.100.1, 192.168.68.1
+
+== Direcciones IPv6 (fe80 = enlace local, fd = ULA privada, 2xxx = global)
+
+IPAddress                                    PrefixOrigin PrefixLength
+---------                                    ------------ ------------
+fe80::cc36:1595:xxxx:xxxx%19                    WellKnown           64
+fdb7:613:ae1:21e4:dc6c:cc50:a381:dc12 RouterAdvertisement           64
+
+

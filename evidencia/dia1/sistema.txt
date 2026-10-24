@@ -1,0 +1,29 @@
+# sistema.txt - 2026-10-23 22:43:31
+== Equipo
+
+Manufacturer : Dell Inc.
+Model        : Dell G15 5511
+RAM_GB       : 15.7
+
+== CPU
+
+Name                      : 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz
+NumberOfCores             : 8
+NumberOfLogicalProcessors : 16
+
+== Sistema operativo
+
+Caption        : Microsoft Windows 11 Pro
+Version        : 10.0.26300
+OSArchitecture : 64 bits
+
+== GPU (nvidia-smi; WMI reporta mal la VRAM > 4 GB)
+name, memory.total [MiB], driver_version, compute_cap
+NVIDIA GeForce RTX 3060 Laptop GPU, 6144 MiB, 610.88, 8.6
+== Discos
+
+DeviceID Total_GB Libre_GB
+-------- -------- --------
+C:         455.00    33.00
+
+

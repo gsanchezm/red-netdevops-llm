@@ -1,0 +1,23 @@
+# vecinos-arp.txt - 2026-10-23 22:44:39
+Vecinos en caché ARP: 15 (solo equipos con los que esta PC habló recientemente;
+el Deco reporta el total de clientes de la casa).
+
+IPAddress      LinkLayerAddress      State
+---------      ----------------      -----
+192.168.68.1   00-31-92-xx-xx-xx Reachable
+192.168.68.103 50-8A-06-xx-xx-xx     Stale
+192.168.68.110 E0-98-06-xx-xx-xx     Stale
+192.168.68.115 BC-7E-8B-xx-xx-xx     Stale
+192.168.68.118 C4-39-60-xx-xx-xx     Stale
+192.168.68.119 E6-DE-02-xx-xx-xx     Stale
+192.168.68.120 0C-DC-7E-xx-xx-xx     Stale
+192.168.68.127 C4-39-60-xx-xx-xx     Stale
+192.168.68.131 A8-80-55-xx-xx-xx     Stale
+192.168.68.137 AC-3D-CB-xx-xx-xx     Stale
+192.168.68.143 E8-DB-84-xx-xx-xx     Stale
+192.168.68.148 74-E2-0C-xx-xx-xx     Stale
+192.168.68.150 18-3D-2D-xx-xx-xx     Stale
+192.168.68.151 BC-7E-8B-xx-xx-xx     Stale
+192.168.68.157 9E-12-49-xx-xx-xx     Stale
+
+

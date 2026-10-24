@@ -1,0 +1,14 @@
+# ipv6.txt - 2026-10-23 22:52:32
+== Ruta IPv6 por defecto (anunciada por el Deco mediante Router Advertisement)
+
+InterfaceAlias NextHop                  RouteMetric
+-------------- -------                  -----------
+Ethernet       fe80::231:92ff:xxxx:xxxx         256
+
+== Conexión TCP 443 directa por IPv6 a api.anthropic.com
+destino=2607:6bc0::10  conectado=False  tiempo=21096 ms
+
+Lectura: existe ruta por defecto IPv6 pero el camino no tiene salida (agujero negro): los SYN
+se pierden sin error inmediato. Un cliente sin Happy Eyeballs esperaría hasta el timeout;
+curl cae a IPv4 tras ~200 ms (ver ia-nube.txt).
+

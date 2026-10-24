@@ -1,0 +1,26 @@
+# herramientas.txt - 2026-10-23 22:44:42
+git      instalado
+python   instalado
+docker   instalado
+wsl      instalado
+claude   instalado
+wg       NO instalado
+ansible  NO instalado
+iperf3   NO instalado
+ollama   NO instalado
+
+== Versiones
+git version 2.56.0.windows.1
+Docker version 29.5.3, build d1c06ef
+Versión de WSL: 3.0.3.0
+Versión de kernel: 6.18.54.1-1
+Versión de WSLg: 1.0.79
+Versión de MSRDC: 1.2.7391
+Versión de Direct3D: 1.611.1-81528511
+Versión de DXCore: 10.0.26100.1-240331-1435.ge-release
+Versión de Windows: 10.0.26300.9711
+claude 2.1.310 (Claude Code)
+== Distribuciones WSL
+  NAME              STATE           VERSION
+* docker-desktop    Stopped         2
+
