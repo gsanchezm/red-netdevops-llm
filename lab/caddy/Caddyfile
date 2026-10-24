@@ -1,0 +1,22 @@
+# Caddy como puerta de enlace de la IA (D5): único punto con TLS y registro hacia Ollama.
+# SITIOS y UPSTREAM llegan por variables de entorno desde compose.segmentada.yml.
+# La CA interna se genera aquí y vive en el volumen caddy-data; solo su certificado raíz
+# (público) se copia a lab/ca/ para que los clientes lo acepten. No hay ACME ni puerto 80.
+{
+	admin localhost:2019
+	auto_https disable_redirects
+	skip_install_trust
+}
+
+{$SITIOS} {
+	tls internal
+
+	log {
+		output stdout
+		format json
+	}
+
+	reverse_proxy {$UPSTREAM} {
+		flush_interval -1      # entregar los tokens en cuanto salen (streaming)
+	}
+}

@@ -1,0 +1,29 @@
+# candidatos-modelo.txt - 2026-10-24
+Medición de candidatos para D9 con Ollama 0.40.10, RTX 3060 Laptop (6 GB; Windows ocupa ≈ 636 MiB),
+OLLAMA_CONTEXT_LENGTH=65536, OLLAMA_FLASH_ATTENTION=1. Los valores son la salida de `ollama ps` tal como se observó.
+Se capturaron con scripts ad hoc; `scripts/modelo.sh` repite la validación del modelo elegido.
+
+== qwen2.5:3b (la elección original de D9) · entrenado con 32768 ==
+  Registro:   WARN source=server.go:112 msg="requested context size too large for model" num_ctx=65536 n_ctx_train=32768
+  Resultado:  CONTEXT 32768, 3.4 GB, 100% GPU. El recorte ocurre por las tres vías probadas:
+              variable de entorno, `options.num_ctx` en la API y `PARAMETER num_ctx 65536` en un Modelfile
+              (la receta de la guía de Hermes). No hay forma de superar el contexto de entrenamiento.
+  Veredicto:  descartado.
+
+== granite4.1:3b · entrenado con 131072 · herramientas ==
+  caché f16 (por defecto)   SIZE 7.8 GB   45%/55% CPU/GPU   CONTEXT 65536    no cumple
+  OLLAMA_KV_CACHE_TYPE=q8_0 SIZE 5.3 GB   22%/78% CPU/GPU   CONTEXT 65536    no cumple
+  OLLAMA_KV_CACHE_TYPE=q4_0 SIZE 3.8 GB   100% GPU          CONTEXT 65536    cumple, con caché de 4 bits
+  Veredicto:  alternativa válida solo con caché q4_0 (menor calidad); no elegida.
+
+== qwen3.5:4b ==
+  `ollama pull` termina siempre con "Error: EOF" tras descargar la capa de 675 MB (3 intentos, mismo punto).
+  Otros modelos sí se descargan (granite4.1:3b 2.1 GB, qwen3.5:2b 2.0 GB): no es la red ni el disco.
+  Veredicto:  no evaluado; se puede reintentar más adelante.
+
+== qwen3.5:2b · entrenado con 262144 · herramientas, razonamiento, visión · Q8_0, 1.9 B ==
+  caché f16 (por defecto)   SIZE 3.2 GB   100% GPU          CONTEXT 65536    cumple  <- elegido
+  OLLAMA_KV_CACHE_TYPE=q8_0 SIZE 2.9 GB   100% GPU          CONTEXT 65536    cumple
+  nvidia-smi con el modelo cargado: 4448 MiB usados de 6144 (≈ 3.8 GB del modelo + 636 MiB de Windows).
+  Registro de carga: offloaded 25/25 layers to GPU · llama_kv_cache: size = 768.00 MiB (65536 cells, 6 layers)
+  Veredicto:  elegido (D9): caché KV de solo 768 MiB a 64 K porque 6 de sus 24 capas llevan atención.

@@ -17,8 +17,35 @@ bajar() { docker compose -f "$LAB/compose.$1.yml" down --remove-orphans -t 2 >/d
 nft_cargar() { $SUDO nft -f "$LAB/nftables/netseg.nft"; echo "nftables: tabla inet netseg cargada"; }
 nft_quitar() { $SUDO nft delete table inet netseg 2>/dev/null && echo "nftables: tabla inet netseg descargada" || true; }
 
+# Volúmenes externos y persistentes: el modelo de Ollama y la CA interna de Caddy.
+# Compose nunca los borra (no usar `down -v`: el modelo pesa ~2 GB y la CA firma los certificados).
+volumenes() { docker volume create ollama-data >/dev/null; docker volume create caddy-data >/dev/null; }
+
+# Copia solo el certificado raíz (público) de la CA interna de Caddy a lab/ca/. La llave privada
+# no sale del volumen caddy-data. Los clientes montan lab/ca en /ca (solo lectura).
+exportar_ca() {
+  local destino="$LAB/ca/root.crt" origen="caddy:/data/caddy/pki/authorities/local/root.crt"
+  mkdir -p "$LAB/ca"
+  for _ in $(seq 1 60); do
+    docker cp "$origen" "$destino" 2>/dev/null && { chmod 644 "$destino"; echo "CA interna exportada a lab/ca/root.crt"; return 0; }
+    sleep 1
+  done
+  echo "ADVERTENCIA: Caddy no generó su CA a tiempo" >&2; return 1
+}
+
+# Espera a los servicios con `healthcheck` (Ollama, Caddy).
+esperar_salud() {
+  for _ in $(seq 1 120); do
+    [[ -z "$(docker ps -q --filter health=starting)" ]] && break
+    sleep 1
+  done
+  local mal; mal="$(docker ps --filter health=unhealthy --format '{{.Names}}')"
+  [[ -z $mal ]] || echo "ADVERTENCIA: no saludables: $mal" >&2
+}
+
 # Espera a que los servicios de prueba escuchen (los puertos salen de ESCUCHA).
 esperar() {
+  esperar_salud
   local c p
   for c in $(docker ps --format '{{.Names}}'); do
     for p in $(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$c" | sed -n 's/^ESCUCHA=//p' | tr ',' ' '); do
@@ -33,14 +60,15 @@ esperar() {
 
 case "${1:-}" in
   plana)
-    bajar segmentada; nft_quitar
+    bajar segmentada; nft_quitar; volumenes
     docker compose -f "$LAB/compose.plana.yml" up -d --build
     esperar ;;
   segmentada)
-    bajar plana
+    bajar plana; volumenes; mkdir -p "$LAB/ca"
     nft_cargar                     # primero la política: la red nace ya filtrada
     docker compose -f "$LAB/compose.segmentada.yml" up -d --build
-    esperar ;;
+    esperar
+    exportar_ca ;;
   nft-cargar) nft_cargar ;;
   nft-quitar) nft_quitar ;;
   apagar)     bajar plana; bajar segmentada; nft_quitar ;;

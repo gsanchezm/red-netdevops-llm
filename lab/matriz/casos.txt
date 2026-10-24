@@ -20,6 +20,7 @@ I02 | IA→Caddy            | ollama    | caddy@ia         | 443   | bloquear | 
 I03 | IA→Trabajo          | ollama    | proyecto1        | 8080  | bloquear | permitir |
 I04 | IA→Admin            | ollama    | colector         | 9100  | bloquear | permitir |
 I05 | IA→Internet         | ollama    | 1.1.1.1          | 443   | bloquear | permitir | segmento sin salida
+C01 | Caddy→Internet      | caddy     | 1.1.1.1          | 443   | bloquear | permitir | D5: Caddy no necesita salida (usa su CA interna)
 # --- Administración (VLAN 99) ---
 A01 | Admin→Caddy         | hermes    | caddy@admin      | 443   | permitir | permitir |
 A02 | Admin→Admin         | hermes    | colector         | 9100  | permitir | permitir | mismo segmento (snapshots de solo lectura)

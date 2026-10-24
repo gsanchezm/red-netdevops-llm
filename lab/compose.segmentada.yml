@@ -10,6 +10,8 @@ x-nodo: &nodo
     context: ./imagen
   init: true
   restart: "no"
+  volumes:
+    - ./ca:/ca:ro        # certificado raíz (público) de la CA interna de Caddy
 
 networks:
   trabajo:                       # VLAN 10
@@ -54,21 +56,69 @@ networks:
         - subnet: 203.0.113.0/24
           gateway: 203.0.113.1
 
+# Volúmenes externos con nombre global (los crea scripts/lab.sh; nunca usar `down -v`):
+# el modelo se descargó en la topología plana y aquí solo se monta, sin necesitar internet;
+# caddy-data guarda la CA interna (con su llave privada), que no sale de ese volumen.
+volumes:
+  ollama-data:
+    name: ollama-data
+    external: true
+  caddy-data:
+    name: caddy-data
+    external: true
+
 services:
   # Única puerta de enlace de aplicación: pata en Trabajo, IA y Admin (no enruta entre ellas).
+  # TLS con la CA interna de Caddy, sin ACME ni salida a internet. El certificado cubre
+  # ia.lab.internal y las IP desde las que se llega (el celular no resuelve nombres .internal).
+  # Imagen fijada por digest (caddy 2.11.7-alpine).
   caddy:
-    <<: *nodo
+    image: caddy@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
     container_name: caddy
-    environment: { NOMBRE: caddy, ESCUCHA: "443" }
+    restart: "no"
+    environment:
+      SITIOS: "ia.lab.internal, 10.10.10.5, 10.10.99.5, 10.10.50.1, 10.10.51.2"
+      UPSTREAM: "10.10.20.10:11434"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
     networks:
-      trabajo: { ipv4_address: 10.10.10.5, gw_priority: 10 }
+      trabajo: { ipv4_address: 10.10.10.5, gw_priority: 10, aliases: [ia.lab.internal] }
       ia: { ipv4_address: 10.10.20.5 }
-      admin: { ipv4_address: 10.10.99.5 }
+      admin: { ipv4_address: 10.10.99.5, aliases: [ia.lab.internal] }
 
+  # Ollama real con GPU, solo en el segmento de IA (sin ruta a internet): el modelo ya está
+  # en el volumen. Imagen fijada por digest (v0.40.10).
   ollama:
-    <<: *nodo
+    image: ollama/ollama@sha256:4c5b27871a3239a717048f9b93057680a51b60c8119a7016aebb57f938e25e35
     container_name: ollama
-    environment: { NOMBRE: ollama, ESCUCHA: "11434" }
+    restart: "no"
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_CONTEXT_LENGTH: "65536"
+      OLLAMA_FLASH_ATTENTION: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_KEEP_ALIVE: 5m               # cargar el modelo cuesta ~3.7 GB de commit de Windows: no dejarlo residente
+      OLLAMA_NO_CLOUD: "1"
+      LLAMA_ARG_CACHE_RAM: "1024"         # el caché de prompts de llama.cpp usa hasta 8 GB de RAM por defecto: la VM de WSL tiene 7.8 GB
+    volumes:
+      - ollama-data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - { driver: nvidia, count: all, capabilities: [gpu] }
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 3s
     networks:
       ia: { ipv4_address: 10.10.20.10 }
 

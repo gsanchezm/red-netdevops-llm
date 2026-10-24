@@ -21,7 +21,16 @@ networks:
         - subnet: 10.10.0.0/24
           gateway: 10.10.0.1
 
+# Volúmenes con nombre global (sin prefijo del proyecto) y externos: los comparten las dos
+# topologías y Compose nunca los borra. Los crea scripts/lab.sh. El modelo se descarga aquí
+# (esta topología sí tiene salida) y la segmentada lo monta sin necesitar internet.
+volumes:
+  ollama-data:
+    name: ollama-data
+    external: true
+
 services:
+  # En la topología plana no hay proxy TLS: Caddy es solo un puerto abierto (nodo de prueba).
   caddy:
     <<: *nodo
     container_name: caddy
@@ -29,10 +38,33 @@ services:
     networks:
       plana: { ipv4_address: 10.10.0.5 }
 
+  # Ollama real con GPU, publicado sin TLS ni control para toda la red (como hoy hacen los
+  # equipos de la casa). Imagen fijada por digest (v0.40.10).
   ollama:
-    <<: *nodo
+    image: ollama/ollama@sha256:4c5b27871a3239a717048f9b93057680a51b60c8119a7016aebb57f938e25e35
     container_name: ollama
-    environment: { NOMBRE: ollama, ESCUCHA: "11434" }
+    restart: "no"
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_CONTEXT_LENGTH: "65536"      # Hermes exige >= 64 K (D9); el modelo debe haberse entrenado con >= 64 K
+      OLLAMA_FLASH_ATTENTION: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"       # un solo modelo en la GPU de 6 GB
+      OLLAMA_KEEP_ALIVE: 5m               # cargar el modelo cuesta ~3.7 GB de commit de Windows y 3.2 GB de VRAM: no dejarlo residente
+      OLLAMA_NO_CLOUD: "1"
+      LLAMA_ARG_CACHE_RAM: "1024"         # el caché de prompts de llama.cpp usa hasta 8 GB de RAM por defecto: la VM de WSL tiene 7.8 GB
+    volumes:
+      - ollama-data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - { driver: nvidia, count: all, capabilities: [gpu] }
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 3s
     networks:
       plana: { ipv4_address: 10.10.0.10 }
 

@@ -12,6 +12,14 @@ wg*.conf
 .vault_pass*
 secrets/
 
+# La CA interna de Caddy vive en un volumen de Docker; en lab/ca solo se copia su certificado
+# raíz (público) en tiempo de ejecución. Nada de lab/ca se versiona salvo el marcador.
+lab/ca/*
+!lab/ca/.gitkeep
+# Datos de Hermes (sesiones, memoria, .env): se generan en ejecución
+hermes-data/
+lab/hermes/data/
+
 # Datos de ejecución
 ollama-data/
 caddy-data/

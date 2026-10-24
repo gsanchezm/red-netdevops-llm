@@ -1,0 +1,57 @@
+# modelo-64k.txt - 2026-10-24 01:29:17 -0600
+Modelo: qwen3.5:2b · servidor: ollama version is 0.40.10
+
+== ollama show ==
+  Model
+    architecture        qwen35             
+    parameters          1.9B               
+    context length      262144             
+    embedding length    2048               
+    quantization        Q8_0               
+    requires            0.30.0             
+    renderer            qwen3.5            
+    parser              qwen3.5            
+    template source     renderer_parser    
+
+  Capabilities
+    completion     
+    vision         
+
+== Configuración del servidor (compose) ==
+OLLAMA_KEEP_ALIVE=30m
+OLLAMA_NO_CLOUD=1
+OLLAMA_CONTEXT_LENGTH=65536
+OLLAMA_FLASH_ATTENTION=1
+OLLAMA_MAX_LOADED_MODELS=1
+
+== Petición con ~48 K tokens de contexto (aguja al inicio) ==
+{"model":"qwen3.5:2b","created_at":"2026-10-24T07:30:30.652538442Z","response":"AZUL-7","done":true,"done_reason":"stop","total_duration":71391530820,"load_duration":40474441230,"prompt_eval_count":57647,"prompt_eval_cached_count":0,"prompt_eval_duration":30582162000,"eval_count":5,"eval_duration":76193000}
+
+
+prompt_eval_count (tokens de entrada realmente procesados): 57647
+prompt_eval_duration: 30582162000 ns · load_duration: 40474441230 ns
+Aguja recuperada: AZUL-7 ✅
+
+== ollama ps (con el modelo cargado) ==
+NAME          ID              SIZE      PROCESSOR    CONTEXT    RUNNER      UNTIL               
+qwen3.5:2b    0689d44085e0    3.2 GB    100% GPU     65536      llamacpp    29 minutes from now    
+
+== GPU ==
+name, memory.used [MiB], memory.free [MiB], memory.total [MiB]
+NVIDIA GeForce RTX 3060 Laptop GPU, 4452 MiB, 1543 MiB, 6144 MiB
+
+== Registro de carga de Ollama ==
+
+== Registro de carga de Ollama (segunda pasada, misma configuración, prompt corto; la primera pasada no capturó el log) ==
+load_tensors: offloaded 25/25 layers to GPU
+load_tensors:   CPU_Mapped model buffer size =   515.31 MiB
+load_tensors:        CUDA0 model buffer size =  1908.35 MiB
+llama_context: n_ctx_seq             = 65536
+llama_context: flash_attn            = enabled
+llama_context: n_ctx_seq (65536) < n_ctx_train (262144) -- the full capacity of the model will not be utilized
+llama_kv_cache: size =  768.00 MiB ( 65536 cells,   6 layers,  1/1 seqs), K (f16):  384.00 MiB, V (f16):  384.00 MiB
+sched_reserve:      CUDA0 compute buffer size =   116.02 MiB
+sched_reserve:  CUDA_Host compute buffer size =    80.02 MiB
+reserve_compute_meta:      CUDA0 compute buffer size =   223.30 MiB
+reserve_compute_meta:        CPU compute buffer size =    24.93 MiB
+srv    load_model: prompt cache is enabled, size limit: 1024 MiB

@@ -25,10 +25,15 @@ ip_destino() {
     | awk -v red="$red" -v topo="$TOPO" 'NF==2 && (red=="" || topo=="plana" || $1==topo"_"red) { print $2; exit }'
 }
 
+# Las sondas comparten el espacio de red del contenedor de origen (misma IP, rutas y reglas) y
+# traen sus propias herramientas desde lab-nodo: así el origen puede ser una imagen real
+# (Caddy, Ollama, Hermes) que no incluye nc ni curl.
+sonda() { local origen="$1" herramienta="$2"; shift 2; docker run --rm --network "container:$origen" -v "$RAIZ/lab/ca:/ca:ro" --entrypoint "$herramienta" lab-nodo:1 "$@"; }
+
 # abierto | rechazado (RST) | sin-ruta | sin-respuesta (descartado)
 sondear() {
   local s
-  s="$(docker exec "$1" nc -zv -w 2 "$2" "$3" 2>&1)"
+  s="$(sonda "$1" nc -zv -w 2 "$2" "$3" 2>&1)"
   case "$s" in
     *succeeded*)            echo abierto ;;
     *refused*)              echo rechazado ;;
@@ -76,11 +81,27 @@ fallas=0; bloq_filtro=0; bloq_ruta=0
     echo "| ${IDS[i]} | ${CELDAS[i]} | ${ORIG[i]} → ${DEST[i]} (${IPS[i]}):${PUERTOS[i]} | ${ESPERADOS[i]} | $obs | $res |"
   done
   echo
+  # Comprobaciones adicionales (código HTTP, o "fallo" si curl no pudo conectar o verificar TLS).
+  extra() { # descripción esperado origen url [opciones de curl...]
+    local desc="$1" esperado="$2" origen="$3" url="$4"; shift 4
+    local obtenido; obtenido="$(sonda "$origen" curl -sS -m 10 -o /dev/null -w '%{http_code}' "$@" "$url" 2>/dev/null)" || obtenido=fallo
+    [[ $obtenido == 000 ]] && obtenido=fallo
+    if [[ $obtenido == "$esperado" ]]; then res="✅ OK"; else res="❌ FALLA"; fallas=$((fallas+1)); fi
+    n=$((n+1))
+    echo "- $desc (esperado \`$esperado\`): obtenido \`$obtenido\` · $res"
+  }
   # Admin solo sale por TCP 443: los nombres deben resolverse sin abrir otros puertos hacia afuera.
-  codigo="$(docker exec hermes curl -sS -m 8 -o /dev/null -w '%{http_code}' https://github.com 2>&1)"
-  if [[ $codigo == 200 ]]; then res="✅ OK"; else res="❌ FALLA"; fallas=$((fallas+1)); fi
-  n=$((n+1))
-  echo "Comprobación adicional · Admin resuelve y abre \`https://github.com\` (esperado HTTP 200): obtenido \`$codigo\` · $res"
+  extra "Admin resuelve y abre https://github.com" 200 hermes https://github.com
+  if [[ $TOPO == segmentada ]]; then
+    # La API de la IA solo se alcanza por Caddy con TLS; el certificado es de la CA interna.
+    extra "Trabajo → https://ia.lab.internal/api/tags con la CA interna" 200 proyecto1 https://ia.lab.internal/api/tags --cacert /ca/root.crt
+    extra "Trabajo → https://10.10.10.5/api/tags (por IP) con la CA interna" 200 proyecto1 https://10.10.10.5/api/tags --cacert /ca/root.crt
+    extra "Admin → https://ia.lab.internal/api/tags con la CA interna" 200 hermes https://ia.lab.internal/api/tags --cacert /ca/root.crt
+    extra "Trabajo → https://ia.lab.internal sin la CA interna (el certificado no es público)" fallo proyecto1 https://ia.lab.internal/api/tags
+    extra "Invitados → https://ia.lab.internal (no resuelve: sin pata de Caddy)" fallo invitado https://ia.lab.internal/api/tags --cacert /ca/root.crt
+  else
+    extra "Trabajo → http://ollama:11434/api/tags directo, sin TLS ni control" 200 proyecto1 http://10.10.0.10:11434/api/tags
+  fi
   echo
   echo "**Bloqueos observados:** $((bloq_filtro+bloq_ruta)) · descartados por el filtrado del kernel: $bloq_filtro · sin ruta desde el origen (segmentos \`internal\`): $bloq_ruta"
   echo

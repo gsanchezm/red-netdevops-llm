@@ -41,6 +41,7 @@ table inet netseg {
         iifname "br-ia" oifname "br-ia" ip saddr 10.10.20.5 ip daddr 10.10.20.10 icmp type echo-request counter accept comment "ping Caddy -> Ollama (mediciones)"
 
         # Salida a internet por segmento (IA e Internet emulado no tienen).
+        iifname "br-trabajo" ip saddr 10.10.10.5 oifname $WAN counter drop comment "Caddy no necesita salida a internet (D5)"
         iifname "br-trabajo"   oifname $WAN counter accept comment "Trabajo -> internet"
         iifname "br-invitados" oifname $WAN counter accept comment "Invitados/IoT -> internet"
         iifname "br-admin"     oifname $WAN tcp dport 443 counter accept comment "Admin -> internet solo TCP 443"
