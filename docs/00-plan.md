@@ -57,8 +57,14 @@ Ubuntu, con un usuario `deploy` en el droplet. Así se puede revocar sin tocar l
 
 ## Dónde vive el repositorio
 
-- Copia de Windows: esta carpeta (dentro de OneDrive). OneDrive puede bloquear o corromper
-  archivos de `.git` al sincronizar: conviene pausar la sincronización mientras se trabaja
-  o mover el repo fuera de OneDrive.
+- Copia de Windows: `C:\Users\gilsa\Documents\Repos\red-netdevops-llm`, fuera de OneDrive
+  (la sincronización bloqueaba archivos de `.git`). El documento de la materia sí se queda
+  en OneDrive.
 - Desde el Día 2 la copia de trabajo y ejecución es un clon dentro de Ubuntu
   (`~/red-netdevops-llm`), sincronizado con esta vía GitHub.
+
+## Preparación realizada (24-oct-2026)
+
+- Docker Desktop limpio: imágenes, contenedores y caché de compilación borrados; se
+  conservaron 9 volúmenes de bases de datos de otros proyectos (194 MB). Disco virtual
+  compactado de 89.4 GB a 4.3 GB (`fstrim` + `diskpart compact`). Libre en C: 125 GB.
