@@ -14,6 +14,8 @@ latencia o ancho de banda.
 - **Laboratorio emulado** (implementación): WSL2 + Ubuntu 24.04 + Docker Engine en la
   misma PC, con una topología **plana** ("antes") y una **segmentada** ("después") para
   comparar con la misma batería de pruebas.
+- **Concentrador VPN real**: un droplet dedicado de DigitalOcean con WireGuard, al que la
+  Dell se conecta hacia afuera y el celular por datos móviles, sin tocar la red de la casa.
 
 ## Estructura
 

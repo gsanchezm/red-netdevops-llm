@@ -1,19 +1,21 @@
-# 00 · Plan de trabajo (7 días, ≈ 18 h)
+# 00 · Plan de trabajo (7 días, ≈ 20 h)
 
-Aprobado el 23-oct-2026. Cada día deja un entregable verificable en el repositorio.
+Aprobado el 23-oct-2026; el mismo día se agregó un droplet de DigitalOcean como
+concentrador WireGuard real (Días 4 y 5). Cada día deja un entregable verificable en el repositorio.
 
 | Día | Horas | Entregable | Estado |
 |---|---|---|---|
 | 1 | 2.5 | Repo Git · documento de la red real con inventario y línea base · diseño objetivo (segmentos, direccionamiento, matriz de flujos, diagramas) | ✅ |
 | 2 | 2.5 | Ubuntu 24.04 en WSL2 con Docker Engine y GPU · compose de las topologías plana y segmentada · nftables · script de matriz de alcanzabilidad | ⬜ |
 | 3 | 3 | Ollama con modelo pequeño (100 % GPU con contexto 64 K) · Hermes en Admin · Caddy con TLS interno · segmento IA sin salida · latencia de la API | ⬜ |
-| 4 | 2 | WireGuard: servidor en el host + cliente remoto emulado · reglas VPN → Caddy :443 · evidencia | ⬜ |
-| 5 | 3 | Ansible en roles · GitHub Actions (lint + despliegue en runner local con aprobación manual) | ⬜ |
+| 4 | 3 | WireGuard: servidor en el host + cliente remoto emulado · droplet dedicado como concentrador (región elegida por ping) con el celular real · reglas VPN → Caddy :443 · evidencia | ⬜ |
+| 5 | 3.5 | Ansible en roles con dos hosts (lab y droplet) · GitHub Actions (lint + despliegue con aprobación manual) | ⬜ |
 | 6 | 2.5 | Hermes lee snapshots y propone un PR (nunca aplica) · mediciones finales plana vs segmentada | ⬜ |
 | 7 | 3 | Documento de la materia (10–15 páginas, APA 7) | ⬜ |
 
 **Si hay retraso, se recorta en este orden:** QoS opcional → iperf3 físico opcional →
-`ansible-lint` estricto.
+`ansible-lint` estricto. Si el droplet no está listo en el Día 4, la VPN emulada queda
+sola y la parte real pasa al Día 6.
 
 **Fuera de alcance (trabajo futuro):** alta disponibilidad, múltiples servidores,
 Kubernetes, Containerlab / 802.1Q emulado, monitoreo avanzado, SSO.
@@ -32,6 +34,26 @@ Kubernetes, Containerlab / 802.1Q emulado, monitoreo avanzado, SSO.
    Windows (610.88). En Ubuntu solo se instala `nvidia-container-toolkit`.
 5. Comprobar en Ubuntu que el kernel trae WireGuard (`sudo modprobe wireguard && lsmod | grep wireguard`);
    si no, el Día 4 usa `wireguard-go`.
+
+## Preparación antes del Día 4 (tarea del usuario)
+
+1. Crear una llave SSH **exclusiva del laboratorio**, con frase de contraseña (no reutilizar
+   `id_ed25519`, que ya se usa para otros servicios):
+
+   ```powershell
+   ssh-keygen -t ed25519 -a 100 -C "redes-lab-admin" -f "$env:USERPROFILE\.ssh\id_ed25519_redes_lab"
+   ```
+
+2. Registrar la parte **pública** en DigitalOcean (Settings → Security → SSH Keys → Add SSH Key):
+
+   ```powershell
+   Get-Content "$env:USERPROFILE\.ssh\id_ed25519_redes_lab.pub"
+   ```
+
+3. No crear el droplet todavía: se crea en el Día 4 junto con la prueba de regiones.
+
+En el Día 5 se genera otra llave, sin frase y solo para el despliegue automático, dentro de
+Ubuntu, con un usuario `deploy` en el droplet. Así se puede revocar sin tocar la llave personal.
 
 ## Dónde vive el repositorio
 

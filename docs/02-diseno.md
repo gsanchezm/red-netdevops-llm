@@ -7,6 +7,11 @@ implementa como **laboratorio emulado** dentro de la Dell G15 (WSL2 + Ubuntu 24.
 Docker Engine), sin tocar la red de la casa. El kernel Linux del laboratorio cumple el
 papel de router/firewall entre segmentos.
 
+Para validar el acceso remoto con un cliente real, un **droplet dedicado de DigitalOcean**
+actúa como concentrador WireGuard: la Dell se conecta hacia afuera y el celular llega por
+datos móviles, sin modificar la red de la casa. El droplet es solo un concentrador VPN,
+no un servidor de aplicaciones.
+
 Se construyen dos topologías con los mismos servicios para comparar:
 
 | Topología | Equivale a | Características |
@@ -45,14 +50,17 @@ con la red del módem (192.168.100.0/24), ni con las redes por defecto de Docker
 | 20 | IA | 10.10.20.0/24 | ninguno (`internal`) | **No** | `caddy` .5 · `ollama` .10 |
 | 30 | Invitados / IoT | 10.10.30.0/24 | .1 (host) | Sí | `iot-sensor` .10 · `invitado` .11 |
 | 99 | Administración | 10.10.99.0/24 | .1 (host) | Solo TCP 443 | `caddy` .5 · `hermes` .20 · `colector` .30 |
-| 50 | VPN (`wg0`) | 10.10.50.0/24 | .1 (`wg0` en host) | No (túnel dividido) | `cliente-remoto` .2 · celular .3 (reservada) |
+| 50 | VPN emulada (`wg0`) | 10.10.50.0/24 | .1 (`wg0` en host) | No (túnel dividido) | `cliente-remoto` .2 |
+| 51 | VPN real (`wg1`, vía droplet) | 10.10.51.0/24 | .1 (droplet) | No (túnel dividido) | droplet .1 · Dell .2 · celular .3 |
 | — | Internet emulado | 203.0.113.0/24 | .1 (host = "IP pública" del servidor) | — | `cliente-remoto` 203.0.113.10 |
 | — | Plana ("antes") | 10.10.0.0/24 | .1 (host) | Sí | Todos los servicios anteriores |
 
 `caddy` es el único equipo con pata en varios segmentos (10, 20 y 99): funciona como
 **puerta de enlace de aplicación** hacia la IA. Ollama solo existe en el segmento 20.
 Nombre del servicio: `ia.lab.internal` (TLD `.internal`, reservado para uso privado),
-publicado como alias de `caddy` en cada red y como `10.10.50.1:443` para la VPN.
+publicado como alias de `caddy` en cada red y como `10.10.50.1:443` y `10.10.51.2:443`
+para las VPN (el certificado interno incluye esas IP, porque el celular no resuelve
+nombres `.internal`).
 
 ## 4. Servicios y puertos
 
@@ -60,7 +68,9 @@ publicado como alias de `caddy` en cada red y como `10.10.50.1:443` para la VPN.
 |---|---|---|---|
 | Caddy (proxy inverso, TLS con CA interna) | 10, 20, 99 | 443/TCP | Trabajo, Admin y VPN |
 | Ollama (API del LLM) | 20 | 11434/TCP | **Solo** Caddy |
-| WireGuard | host | 51820/UDP | Internet emulado |
+| WireGuard emulado (`wg0`) | host | 51820/UDP | Internet emulado |
+| WireGuard real (`wg1`, concentrador) | droplet | 51820/UDP | Internet (Dell y celular) |
+| SSH del droplet | droplet | 22/TCP | Solo la IP de casa al arrancar; después solo por `wg1` |
 | iperf3 (pruebas) | según prueba | 5201/TCP | Solo durante mediciones |
 | Hermes Agent | 99 | sin puertos de entrada | Sale a Caddy :443 y a GitHub :443 |
 
@@ -75,12 +85,17 @@ respuesta se permite por estado (`ct state established,related`).
 | **IA** | ❌ | — | (solo respuestas) | ❌ | ❌ | ❌ |
 | **Admin** | ❌ | ❌ | ✅ | — | ❌ | ✅ solo TCP 443 |
 | **Invitados/IoT** | ❌ | ❌ | ❌ | ❌ | ✅ (mismo segmento) | ✅ |
-| **VPN (`wg0`)** | ❌ | ❌ | ✅ vía 10.10.50.1:443 | ❌ | ❌ | ❌ |
+| **VPN emulada (`wg0`)** | ❌ | ❌ | ✅ vía 10.10.50.1:443 | ❌ | ❌ | ❌ |
+| **VPN real (`wg1`)** | ❌ | ❌ | ✅ vía 10.10.51.2:443 | ❌ | ❌ | ❌ |
 | **Internet emulado** | ❌ | ❌ | ❌ | ❌ | ❌ | — (solo UDP 51820 al host) |
 
 Excepción temporal: durante el aprovisionamiento el modelo se descarga en la topología
 plana (que sí tiene salida) sobre un volumen compartido; la topología segmentada monta
 ese volumen y nunca necesita salida.
+
+En el droplet, la cadena `forward` solo permite `wg1 → wg1` del celular (.3) a la Dell
+(.2) por TCP 443; el resto se descarta. El Cloud Firewall de DigitalOcean repite la misma
+política afuera del droplet (solo UDP 51820 de entrada, y SSH desde la IP de casa).
 
 ## 6. Diagrama lógico (topología segmentada)
 
@@ -103,7 +118,12 @@ flowchart LR
             IOT["iot-sensor .10<br/>invitado .11"]
         end
         WG["wg0 · 10.10.50.1/24<br/>UDP 51820"]
+        WG1["wg1 · 10.10.51.2<br/>sale al droplet · keepalive 25 s"]
     end
+    subgraph DO["DigitalOcean · droplet dedicado · IP pública"]
+        HUB["Concentrador WireGuard<br/>wg1 10.10.51.1 · UDP 51820"]
+    end
+    CEL["Celular · datos móviles<br/>túnel 10.10.51.3"]
     subgraph INET["Internet emulado · 203.0.113.0/24"]
         REM["cliente-remoto<br/>203.0.113.10 · túnel 10.10.50.2"]
     end
@@ -117,7 +137,14 @@ flowchart LR
     HER -->|HTTPS 443 · propone PR| GH
     COL -.->|snapshots solo lectura| HER
     IOT -.->|denegado| CADDY
+    WG1 -->|UDP 51820 saliente| HUB
+    CEL -->|UDP 51820| HUB
+    WG1 -->|HTTPS 443| CADDY
 ```
+
+El tráfico del celular hace un rodeo (celular → droplet en EE. UU. → casa): su latencia
+es la suma de ambos tramos y se mide. Reenviar puertos en el router daría un camino
+directo, pero obliga a modificar la red de la casa y a eliminar un NAT.
 
 ## 7. Decisiones de diseño (con justificación de red)
 
@@ -132,6 +159,7 @@ flowchart LR
 | D7 | Hermes en Admin, solo lectura, propone PR | Separación de funciones: la IA observa y propone; la red solo cambia por el pipeline con aprobación humana. El control efectivo es la protección de la rama `main` (PR + CI + aprobación obligatorios), no la buena conducta del agente | Darle shell al host (riesgo de cambios no auditados) |
 | D8 | GitHub público + runner autohospedado en WSL | El runner solo abre conexiones salientes (funciona tras doble NAT/CGNAT); aprobación manual por *Environment* | Exponer SSH del servidor a internet |
 | D9 | Modelo `qwen2.5:3b` (Q4) con contexto de 64 K | Hermes exige ≥ 64 K de contexto. La caché KV ocupa 2 (K y V) × capas × cabezas KV × dim. de cabeza × 2 bytes por token: con 36 capas, 2 cabezas KV y dim. 128 son ≈ 36 KB/token → **≈ 2.4 GB a 64 K** + ≈ 1.9 GB de pesos ≈ 4.3 GB, dentro de los ≈ 5.4 GB libres de la GPU. Se entrenó con 32 K; los prompts del proyecto son cortos. Se verifica en el Día 3 con `ollama ps` | `hermes3:3b` / `llama3.2:3b` (8 cabezas KV → ≈ 7.5 GB solo de caché a 64 K) y modelos de 7–8 B: desbordan a CPU |
+| D10 | Concentrador WireGuard en un droplet dedicado de DigitalOcean | La Dell abre la conexión hacia afuera (keepalive 25 s), así atraviesa el doble NAT sin reenviar puertos ni tocar la casa; IP pública fija; región elegida por latencia medida. El TLS de Caddy es extremo a extremo: el droplet solo descifra el salto WireGuard y ve tráfico TLS y metadatos. Dedicado para aislar fallas y reglas de otros proyectos | Reenviar puertos en ONT + Deco (modifica la red; posible CGNAT); Tailscale (plano de control de un tercero); reutilizar otro droplet |
 
 ## 8. Plan de pruebas y métricas (se aplica a ambas topologías)
 
@@ -142,6 +170,8 @@ flowchart LR
 | Latencia de la API | `curl -w` (TCP, TLS, primer token, total) | Directo a Ollama vs Caddy TLS vs VPN; comparación con la nube (`01-red-actual.md` §4) |
 | Throughput | `iperf3` (TCP, 10 s, 3 repeticiones) | Capacidad entre segmentos y sobrecarga de WireGuard |
 | VPN | `wg show`, handshake, `ping`/`iperf3` por el túnel | Acceso remoto cifrado funcionando |
+| Ubicación del concentrador | `ping -c 50` desde casa a droplets de prueba en 2–3 regiones (minutos, luego se destruyen) | Región elegida por datos, no por suposición |
+| VPN real por internet | `ping`/`iperf3` droplet ↔ Dell por `wg1`; HTTPS desde el celular | Latencia y throughput WAN reales, incluido el rodeo por el droplet |
 | Contexto/VRAM | `ollama ps`, `nvidia-smi` | Modelo 100 % en GPU con contexto de 64 K |
 | Opcional (real) | `iperf3` Dell ↔ laptop secundaria por el switch | Cuello de botella físico de 1 Gb/s |
 
@@ -182,4 +212,6 @@ La Dell se recablea directo al switch (puerto 3) en lugar de colgar del Deco Nod
 | 6 GB de VRAM no alcanzan para modelo + contexto 64 K | Modelo con pocas cabezas KV (D9); si aun así desborda, cuantizar la caché KV (variables verificadas en la doc. de Ollama) |
 | Disco: 34 GB libres en C: | Requerido ≈ 12–15 GB; liberar espacio antes del Día 2 |
 | Reglas de Docker interfieren con nftables propias | Tabla propia con prioridad anterior a la de Docker; se valida con la matriz de alcanzabilidad |
+| El droplet queda expuesto a internet | SSH solo con llave y, tras arrancar, solo por `wg1`; Cloud Firewall + nftables con denegación por defecto; WireGuard no responde a paquetes no autenticados |
+| El droplet tiene costo mensual | Tamaño mínimo; se destruye al terminar (el despliegue con Ansible lo recrea) |
 | Hermes ejecuta comandos sin aprobación en backend Docker | No tiene acceso al host: solo lee snapshots montados en modo lectura; sus cambios son PR |
