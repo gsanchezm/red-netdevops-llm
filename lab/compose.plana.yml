@@ -1,0 +1,102 @@
+# Topología PLANA ("antes"): equivale a la red actual de la casa (docs/01-red-actual.md).
+# Un solo dominio de broadcast (10.10.0.0/24), todos los servicios alcanzables entre sí,
+# Ollama sin TLS ni control, salida a internet para todos y ninguna regla nftables.
+# Uso: scripts/lab.sh plana
+name: plana
+
+x-nodo: &nodo
+  image: lab-nodo:1
+  build:
+    context: ./imagen
+  init: true
+  restart: "no"
+
+networks:
+  plana:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-plana
+    ipam:
+      config:
+        - subnet: 10.10.0.0/24
+          gateway: 10.10.0.1
+
+services:
+  caddy:
+    <<: *nodo
+    container_name: caddy
+    environment: { NOMBRE: caddy, ESCUCHA: "443" }
+    networks:
+      plana: { ipv4_address: 10.10.0.5 }
+
+  ollama:
+    <<: *nodo
+    container_name: ollama
+    environment: { NOMBRE: ollama, ESCUCHA: "11434" }
+    networks:
+      plana: { ipv4_address: 10.10.0.10 }
+
+  proyecto1:
+    <<: *nodo
+    container_name: proyecto1
+    environment: { NOMBRE: proyecto1, ESCUCHA: "8080" }
+    networks:
+      plana: { ipv4_address: 10.10.0.11 }
+
+  proyecto2:
+    <<: *nodo
+    container_name: proyecto2
+    environment: { NOMBRE: proyecto2, ESCUCHA: "8080" }
+    networks:
+      plana: { ipv4_address: 10.10.0.12 }
+
+  proyecto3:
+    <<: *nodo
+    container_name: proyecto3
+    environment: { NOMBRE: proyecto3, ESCUCHA: "8080" }
+    networks:
+      plana: { ipv4_address: 10.10.0.13 }
+
+  proyecto4:
+    <<: *nodo
+    container_name: proyecto4
+    environment: { NOMBRE: proyecto4, ESCUCHA: "8080" }
+    networks:
+      plana: { ipv4_address: 10.10.0.14 }
+
+  proyecto5:
+    <<: *nodo
+    container_name: proyecto5
+    environment: { NOMBRE: proyecto5, ESCUCHA: "8080" }
+    networks:
+      plana: { ipv4_address: 10.10.0.15 }
+
+  hermes:
+    <<: *nodo
+    container_name: hermes
+    environment: { NOMBRE: hermes }
+    networks:
+      plana: { ipv4_address: 10.10.0.20 }
+
+  colector:
+    <<: *nodo
+    container_name: colector
+    environment: { NOMBRE: colector, ESCUCHA: "9100" }
+    networks:
+      plana: { ipv4_address: 10.10.0.30 }
+
+  # En la topología plana las IP de IoT/invitado no pueden ser .10/.11 (ya son de
+  # Ollama y proyecto1); se numeran .40/.41.
+  iot-sensor:
+    <<: *nodo
+    container_name: iot-sensor
+    environment: { NOMBRE: iot-sensor, ESCUCHA: "1883" }
+    networks:
+      plana: { ipv4_address: 10.10.0.40 }
+
+  invitado:
+    <<: *nodo
+    container_name: invitado
+    environment: { NOMBRE: invitado, ESCUCHA: "8080" }
+    networks:
+      plana: { ipv4_address: 10.10.0.41 }

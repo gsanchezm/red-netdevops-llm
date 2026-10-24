@@ -53,7 +53,7 @@ con la red del módem (192.168.100.0/24), ni con las redes por defecto de Docker
 | 50 | VPN emulada (`wg0`) | 10.10.50.0/24 | .1 (`wg0` en host) | No (túnel dividido) | `cliente-remoto` .2 |
 | 51 | VPN real (`wg1`, vía droplet) | 10.10.51.0/24 | .1 (droplet) | No (túnel dividido) | droplet .1 · Dell .2 · celular .3 |
 | — | Internet emulado | 203.0.113.0/24 | .1 (host = "IP pública" del servidor) | — | `cliente-remoto` 203.0.113.10 |
-| — | Plana ("antes") | 10.10.0.0/24 | .1 (host) | Sí | Todos los servicios anteriores |
+| — | Plana ("antes") | 10.10.0.0/24 | .1 (host) | Sí | Todos los servicios anteriores, con la misma numeración salvo `iot-sensor` .40 e `invitado` .41 (.10 y .11 ya son de `ollama` y `proyecto1`) |
 
 `caddy` es el único equipo con pata en varios segmentos (10, 20 y 99): funciona como
 **puerta de enlace de aplicación** hacia la IA. Ollama solo existe en el segmento 20.
@@ -160,6 +160,7 @@ directo, pero obliga a modificar la red de la casa y a eliminar un NAT.
 | D8 | GitHub público + runner autohospedado en WSL | El runner solo abre conexiones salientes (funciona tras doble NAT/CGNAT); aprobación manual por *Environment* | Exponer SSH del servidor a internet |
 | D9 | Modelo `qwen2.5:3b` (Q4) con contexto de 64 K | Hermes exige ≥ 64 K de contexto. La caché KV ocupa 2 (K y V) × capas × cabezas KV × dim. de cabeza × 2 bytes por token: con 36 capas, 2 cabezas KV y dim. 128 son ≈ 36 KB/token → **≈ 2.4 GB a 64 K** + ≈ 1.9 GB de pesos ≈ 4.3 GB, dentro de los ≈ 5.4 GB libres de la GPU. Se entrenó con 32 K; los prompts del proyecto son cortos. Se verifica en el Día 3 con `ollama ps` | `hermes3:3b` / `llama3.2:3b` (8 cabezas KV → ≈ 7.5 GB solo de caché a 64 K) y modelos de 7–8 B: desbordan a CPU |
 | D10 | Concentrador WireGuard en un droplet dedicado de DigitalOcean | La Dell abre la conexión hacia afuera (keepalive 25 s), así atraviesa el doble NAT sin reenviar puertos ni tocar la casa; IP pública fija; región elegida por latencia medida. El TLS de Caddy es extremo a extremo: el droplet solo descifra el salto WireGuard y ve tráfico TLS y metadatos. Dedicado para aislar fallas y reglas de otros proyectos | Reenviar puertos en ONT + Deco (modifica la red; posible CGNAT); Tailscale (plano de control de un tercero); reutilizar otro droplet; correr Ollama o Hermes en el droplet (los prompts saldrían de la red en texto claro, sin GPU, +latencia WAN en cada petición y API expuesta en internet) |
+| D11 | La política entre segmentos vive en una tabla `nftables` propia que debe cumplir la matriz **sin depender de Docker**; las reglas de Docker quedan como respaldo (backend `iptables`) | Docker ya aísla bridges y protege la IP de cada contenedor (`raw/PREROUTING`), pero eso no lo controla el proyecto ni existe en un router real (§9). Medido en el Día 2: Docker solo falla 2 de 35 casos (Ollama iniciando conexiones y la salida de Admin por TCP 80), y con sus reglas DROP retiradas `netseg` sola pasa 35/35. Orden de evaluación: `raw` −300 → `netseg` −10 → `filter` de Docker 0 | `--firewall-backend nftables` de Docker (opción nueva del daemon: la política seguiría mezclada con reglas ajenas); `--iptables=false` (obliga a reescribir NAT y publicación de puertos a mano) |
 
 ## 8. Plan de pruebas y métricas (se aplica a ambas topologías)
 
@@ -211,7 +212,7 @@ La Dell se recablea directo al switch (puerto 3) en lugar de colgar del Deco Nod
 |---|---|
 | 6 GB de VRAM no alcanzan para modelo + contexto 64 K | Modelo con pocas cabezas KV (D9); si aun así desborda, cuantizar la caché KV (variables verificadas en la doc. de Ollama) |
 | Disco: 34 GB libres en C: | Requerido ≈ 12–15 GB; liberar espacio antes del Día 2 |
-| Reglas de Docker interfieren con nftables propias | Tabla propia con prioridad anterior a la de Docker; se valida con la matriz de alcanzabilidad |
+| Reglas de Docker interfieren con nftables propias | Tabla propia con prioridad anterior a la de Docker; se valida con la matriz de alcanzabilidad. Verificado en el Día 2: ver D11 y `03-laboratorio.md` §4 |
 | El droplet queda expuesto a internet | SSH solo con llave y, tras arrancar, solo por `wg1`; Cloud Firewall + nftables con denegación por defecto; WireGuard no responde a paquetes no autenticados |
 | El droplet tiene costo mensual | Tamaño mínimo; se destruye al terminar (el despliegue con Ansible lo recrea) |
 | Hermes ejecuta comandos sin aprobación en backend Docker | No tiene acceso al host: solo lee snapshots montados en modo lectura; sus cambios son PR |

@@ -1,0 +1,54 @@
+# contadores-segmentada.txt - 2026-10-24 00:37:21 -0600
+Matriz segmentada ejecutada tras poner los contadores en cero (código de salida: 0).
+
+== 1. Docker · raw/PREROUTING (prioridad -300, evalúa primero) ==
+    0     0 DROP       0    --  !br-trabajo *       0.0.0.0/0            10.10.10.13         
+    0     0 DROP       0    --  !br-trabajo *       0.0.0.0/0            10.10.10.12         
+   18  1080 DROP       0    --  !br-trabajo *       0.0.0.0/0            10.10.10.11         
+    0     0 DROP       0    --  !br-trabajo *       0.0.0.0/0            10.10.10.15         
+    0     0 DROP       0    --  !br-invitados *       0.0.0.0/0            10.10.30.11         
+    6   360 DROP       0    --  !br-trabajo *       0.0.0.0/0            10.10.10.5          
+    0     0 DROP       0    --  !br-admin *       0.0.0.0/0            10.10.99.5          
+    0     0 DROP       0    --  !br-admin *       0.0.0.0/0            10.10.99.20         
+   12   720 DROP       0    --  !br-invitados *       0.0.0.0/0            10.10.30.10         
+   12   720 DROP       0    --  !br-admin *       0.0.0.0/0            10.10.99.30         
+    0     0 DROP       0    --  !br-trabajo *       0.0.0.0/0            10.10.10.14         
+
+== 2. nftables · tabla inet netseg (prioridad -10) ==
+table inet netseg {
+	chain forward {
+		type filter hook forward priority filter - 10; policy drop;
+		ct state invalid counter packets 0 bytes 0 drop comment "paquetes fuera de estado"
+		ct state established,related counter packets 369 bytes 617526 accept comment "respuestas de flujos permitidos"
+		iifname "br-trabajo" oifname "br-trabajo" counter packets 2 bytes 120 accept comment "VLAN 10 intra-segmento"
+		iifname "br-invitados" oifname "br-invitados" counter packets 2 bytes 120 accept comment "VLAN 30 intra-segmento"
+		iifname "br-admin" oifname "br-admin" counter packets 2 bytes 120 accept comment "VLAN 99 intra-segmento"
+		iifname "br-ia" oifname "br-ia" ip saddr 10.10.20.5 ip daddr 10.10.20.10 tcp dport 11434 counter packets 1 bytes 60 accept comment "Caddy -> Ollama :11434"
+		iifname "br-ia" oifname "br-ia" ip saddr 10.10.20.5 ip daddr 10.10.20.10 icmp type echo-request counter packets 0 bytes 0 accept comment "ping Caddy -> Ollama (mediciones)"
+		iifname "br-trabajo" oifname "eth0" counter packets 2 bytes 120 accept comment "Trabajo -> internet"
+		iifname "br-invitados" oifname "eth0" counter packets 1 bytes 60 accept comment "Invitados/IoT -> internet"
+		iifname "br-admin" oifname "eth0" tcp dport 443 counter packets 2 bytes 120 accept comment "Admin -> internet solo TCP 443"
+		limit rate 6/minute burst 10 packets log prefix "netseg-drop: " level info
+		counter packets 12 bytes 720 drop comment "denegación por defecto"
+	}
+
+	chain input {
+		type filter hook input priority filter - 10; policy accept;
+		iifname != { "br-ia", "br-inet", "br-admin", "br-trabajo", "br-invitados" } accept comment "no viene de un segmento del laboratorio: sin cambios"
+		ct state established,related counter packets 0 bytes 0 accept
+		icmp type echo-request counter packets 0 bytes 0 accept comment "ping al gateway del segmento (mediciones)"
+		iifname "br-inet" udp dport 51820 counter packets 0 bytes 0 accept comment "WireGuard emulado (Día 4)"
+		limit rate 6/minute burst 10 packets log prefix "netseg-input-drop: " level info
+		counter packets 0 bytes 0 drop comment "los segmentos no administran el host"
+	}
+}
+
+== 3. Docker · filter (prioridad 0): reglas DROP con sus contadores ==
+(un paquete que las capas 1 o 2 ya descartaron no llega aquí)
+DOCKER:     0     0 DROP       0    --  !br-trabajo br-trabajo  0.0.0.0/0            0.0.0.0/0           
+DOCKER:     0     0 DROP       0    --  !br-invitados br-invitados  0.0.0.0/0            0.0.0.0/0           
+DOCKER:     0     0 DROP       0    --  !br-admin br-admin  0.0.0.0/0            0.0.0.0/0           
+DOCKER-INTERNAL:     0     0 DROP       0    --  *      br-ia  !10.10.20.0/24        0.0.0.0/0           
+DOCKER-INTERNAL:     0     0 DROP       0    --  br-ia  *       0.0.0.0/0           !10.10.20.0/24       
+DOCKER-INTERNAL:     0     0 DROP       0    --  *      br-inet !203.0.113.0/24       0.0.0.0/0           
+DOCKER-INTERNAL:     0     0 DROP       0    --  br-inet *       0.0.0.0/0           !203.0.113.0/24      

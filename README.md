@@ -24,17 +24,33 @@ docs/
   00-plan.md          Plan de 7 días y estado
   01-red-actual.md    Caso de estudio: inventario, topología, línea base, hallazgos
   02-diseno.md        Diseño objetivo: segmentos, IPs, matriz de flujos, decisiones, pruebas
+  03-laboratorio.md   Laboratorio emulado: entorno, operación, resultados de la matriz
   img/                Capturas y diagramas
+lab/
+  compose.plana.yml, compose.segmentada.yml   Las dos topologías (Docker Compose)
+  nftables/netseg.nft                          Política entre segmentos (tabla inet netseg)
+  matriz/casos.txt                             Casos de la matriz de alcanzabilidad
+  imagen/                                      Nodo de prueba (Alpine + herramientas de red)
 evidencia/
   dia1/               Salidas de la línea base (IP pública y MACs ocultas)
+  dia2/               Entorno, matrices por topología, contadores y log de descartes
 scripts/
   linea-base.ps1      Captura de la línea base en Windows (solo lectura)
+  wsl/                Aprovisionamiento de Ubuntu (Docker, GPU) y evidencia del entorno
+  lab.sh, matriz.sh   Ciclo de vida del laboratorio y matriz de alcanzabilidad
+  contadores.sh, netseg-sola.sh   Qué capa de filtrado detiene cada flujo
 ```
 
-Se agregan día con día: `lab/` (compose y nftables), `ansible/`, `hermes/` y
-`.github/workflows/`.
+Se agregan día con día: `ansible/`, `hermes/` y `.github/workflows/`.
 
-## Reproducir la línea base
+## Reproducir
+
+```bash
+# en Ubuntu (WSL2), como root; ver docs/03-laboratorio.md
+scripts/lab.sh segmentada && scripts/matriz.sh segmentada
+```
+
+Línea base de la red real (Windows, solo lectura):
 
 ```powershell
 pwsh -File scripts/linea-base.ps1

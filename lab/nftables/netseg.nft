@@ -1,0 +1,64 @@
+#!/usr/sbin/nft -f
+# Política entre segmentos del laboratorio (docs/02-diseno.md §5): el kernel hace de router
+# y firewall. Equivale a las ACL entre VLAN de un router real.
+#
+# Orden de evaluación (de primero a último): 1) Docker raw/PREROUTING, prioridad -300, descarta
+# lo dirigido a la IP de un contenedor si no entró por su bridge; 2) esta tabla, prioridad -10;
+# 3) las cadenas filter de Docker (iptables-nft), prioridad 0. Un `drop` es definitivo; un
+# `accept` solo termina su cadena y el paquete sigue hacia las siguientes.
+# Esta tabla es la política del proyecto y está completa por sí sola (scripts/netseg-sola.sh la
+# prueba sin las reglas DROP de Docker); además es la única capa que cubre los destinos del
+# segmento de IA, la salida de Admin y "Ollama nunca inicia". Docker queda como respaldo.
+#
+# Docker mantiene br_netfilter activo (bridge-nf-call-iptables=1): el tráfico dentro de un
+# mismo bridge (L2) también pasa por `forward`, así que lo intra-segmento se acepta de forma
+# explícita y se puede restringir (segmento de IA).
+#
+# Carga idempotente:  nft -f lab/nftables/netseg.nft     Descarga:  nft delete table inet netseg
+
+define WAN = "eth0"        # interfaz de salida del host ("internet" real)
+define LAB = { "br-trabajo", "br-ia", "br-invitados", "br-admin", "br-inet" }
+
+table inet netseg
+delete table inet netseg
+
+table inet netseg {
+
+    # Tráfico que atraviesa el host entre segmentos y hacia internet.
+    chain forward {
+        type filter hook forward priority -10; policy drop;
+
+        ct state invalid counter drop comment "paquetes fuera de estado"
+        ct state established,related counter accept comment "respuestas de flujos permitidos"
+
+        # Dentro de cada segmento (mismo dominio de broadcast).
+        iifname "br-trabajo"   oifname "br-trabajo"   counter accept comment "VLAN 10 intra-segmento"
+        iifname "br-invitados" oifname "br-invitados" counter accept comment "VLAN 30 intra-segmento"
+        iifname "br-admin"     oifname "br-admin"     counter accept comment "VLAN 99 intra-segmento"
+
+        # VLAN 20 (IA): solo Caddy abre conexiones hacia Ollama; Ollama nunca inicia ninguna.
+        iifname "br-ia" oifname "br-ia" ip saddr 10.10.20.5 ip daddr 10.10.20.10 tcp dport 11434 counter accept comment "Caddy -> Ollama :11434"
+        iifname "br-ia" oifname "br-ia" ip saddr 10.10.20.5 ip daddr 10.10.20.10 icmp type echo-request counter accept comment "ping Caddy -> Ollama (mediciones)"
+
+        # Salida a internet por segmento (IA e Internet emulado no tienen).
+        iifname "br-trabajo"   oifname $WAN counter accept comment "Trabajo -> internet"
+        iifname "br-invitados" oifname $WAN counter accept comment "Invitados/IoT -> internet"
+        iifname "br-admin"     oifname $WAN tcp dport 443 counter accept comment "Admin -> internet solo TCP 443"
+
+        # Todo lo demás se descarta; se registra con límite para no inundar el log.
+        limit rate 6/minute burst 10 packets log prefix "netseg-drop: " level info
+        counter drop comment "denegación por defecto"
+    }
+
+    # Tráfico dirigido al propio host (gateway de cada segmento).
+    chain input {
+        type filter hook input priority -10; policy accept;
+
+        iifname != $LAB accept comment "no viene de un segmento del laboratorio: sin cambios"
+        ct state established,related counter accept
+        icmp type echo-request counter accept comment "ping al gateway del segmento (mediciones)"
+        iifname "br-inet" udp dport 51820 counter accept comment "WireGuard emulado (Día 4)"
+        limit rate 6/minute burst 10 packets log prefix "netseg-input-drop: " level info
+        counter drop comment "los segmentos no administran el host"
+    }
+}

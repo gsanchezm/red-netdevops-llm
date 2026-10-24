@@ -1,0 +1,143 @@
+# Topología SEGMENTADA ("después"): docs/02-diseno.md §3.
+# Un bridge de Docker por VLAN (nombres fijos, para que nftables los referencie), el
+# segmento de IA sin salida (internal) y Caddy como única puerta hacia Ollama.
+# La política entre segmentos la aplica lab/nftables/netseg.nft (cargada por scripts/lab.sh).
+name: segmentada
+
+x-nodo: &nodo
+  image: lab-nodo:1
+  build:
+    context: ./imagen
+  init: true
+  restart: "no"
+
+networks:
+  trabajo:                       # VLAN 10
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-trabajo
+    ipam:
+      config:
+        - subnet: 10.10.10.0/24
+          gateway: 10.10.10.1
+  ia:                            # VLAN 20 · sin salida a internet
+    driver: bridge
+    internal: true
+    driver_opts:
+      com.docker.network.bridge.name: br-ia
+    ipam:
+      config:
+        - subnet: 10.10.20.0/24
+  invitados:                     # VLAN 30
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-invitados
+    ipam:
+      config:
+        - subnet: 10.10.30.0/24
+          gateway: 10.10.30.1
+  admin:                         # VLAN 99
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-admin
+    ipam:
+      config:
+        - subnet: 10.10.99.0/24
+          gateway: 10.10.99.1
+  inet:                          # "Internet" emulado (RFC 5737); el host es 203.0.113.1
+    driver: bridge
+    internal: true
+    driver_opts:
+      com.docker.network.bridge.name: br-inet
+    ipam:
+      config:
+        - subnet: 203.0.113.0/24
+          gateway: 203.0.113.1
+
+services:
+  # Única puerta de enlace de aplicación: pata en Trabajo, IA y Admin (no enruta entre ellas).
+  caddy:
+    <<: *nodo
+    container_name: caddy
+    environment: { NOMBRE: caddy, ESCUCHA: "443" }
+    networks:
+      trabajo: { ipv4_address: 10.10.10.5, gw_priority: 10 }
+      ia: { ipv4_address: 10.10.20.5 }
+      admin: { ipv4_address: 10.10.99.5 }
+
+  ollama:
+    <<: *nodo
+    container_name: ollama
+    environment: { NOMBRE: ollama, ESCUCHA: "11434" }
+    networks:
+      ia: { ipv4_address: 10.10.20.10 }
+
+  proyecto1:
+    <<: *nodo
+    container_name: proyecto1
+    environment: { NOMBRE: proyecto1, ESCUCHA: "8080" }
+    networks:
+      trabajo: { ipv4_address: 10.10.10.11 }
+
+  proyecto2:
+    <<: *nodo
+    container_name: proyecto2
+    environment: { NOMBRE: proyecto2, ESCUCHA: "8080" }
+    networks:
+      trabajo: { ipv4_address: 10.10.10.12 }
+
+  proyecto3:
+    <<: *nodo
+    container_name: proyecto3
+    environment: { NOMBRE: proyecto3, ESCUCHA: "8080" }
+    networks:
+      trabajo: { ipv4_address: 10.10.10.13 }
+
+  proyecto4:
+    <<: *nodo
+    container_name: proyecto4
+    environment: { NOMBRE: proyecto4, ESCUCHA: "8080" }
+    networks:
+      trabajo: { ipv4_address: 10.10.10.14 }
+
+  proyecto5:
+    <<: *nodo
+    container_name: proyecto5
+    environment: { NOMBRE: proyecto5, ESCUCHA: "8080" }
+    networks:
+      trabajo: { ipv4_address: 10.10.10.15 }
+
+  hermes:
+    <<: *nodo
+    container_name: hermes
+    environment: { NOMBRE: hermes }
+    networks:
+      admin: { ipv4_address: 10.10.99.20 }
+
+  colector:
+    <<: *nodo
+    container_name: colector
+    environment: { NOMBRE: colector, ESCUCHA: "9100" }
+    networks:
+      admin: { ipv4_address: 10.10.99.30 }
+
+  iot-sensor:
+    <<: *nodo
+    container_name: iot-sensor
+    environment: { NOMBRE: iot-sensor, ESCUCHA: "1883" }
+    networks:
+      invitados: { ipv4_address: 10.10.30.10 }
+
+  invitado:
+    <<: *nodo
+    container_name: invitado
+    environment: { NOMBRE: invitado, ESCUCHA: "8080" }
+    networks:
+      invitados: { ipv4_address: 10.10.30.11 }
+
+  cliente-remoto:
+    <<: *nodo
+    container_name: cliente-remoto
+    environment: { NOMBRE: cliente-remoto }
+    networks:
+      inet: { ipv4_address: 203.0.113.10 }
