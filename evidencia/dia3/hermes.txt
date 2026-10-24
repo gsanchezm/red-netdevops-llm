@@ -1,0 +1,38 @@
+# hermes.txt - 2026-10-24 01:48:18 -0600
+Hermes Agent v0.22.5 (2026.9.24) · upstream bf0203a7 · imagen nousresearch/hermes-agent@sha256:9c5561579f3ffdf333401797094ac3a743738
+
+== Sin puertos de entrada desde la red ==
+tcp        0      0 127.0.0.1:55243         0.0.0.0:*               LISTEN      
+tcp        0      0 127.0.0.11:38267        0.0.0.0:*               LISTEN      
+tcp        0      0 127.0.0.1:8642          0.0.0.0:*               LISTEN      
+escuchas fuera de loopback: 0
+colector (misma VLAN 99) → 10.10.99.20:8642: refused
+
+== Sin acceso al host: puntos de montaje del contenedor ==
+bind /ca (rw=false)
+volume /opt/data (rw=true)
+bind /opt/data/config.yaml (rw=false)
+
+docker.sock montado: 0
+
+== La configuración es de solo lectura ==
+sh: 1: cannot create /opt/data/config.yaml: Read-only file system
+
+== Modelo y endpoint que Hermes lee ==
+default: qwen3.5:2b
+provider: custom
+base_url: https://ia.lab.internal/v1
+api_key: '***'
+context_length: 65536
+
+== Pregunta de una sola vez: hermes chat -q "Responde solo con la palabra: OK" -Q ==
+OK
+session_id: local-6623f70035210f4e059f3b6e3ee831e76ff6a2ecfad4f9dcd4d3731db92759ea
+(duración total: 17 s, incluye la carga del modelo y el prompt del sistema de Hermes)
+
+== Registro de Caddy: la petición llegó desde Admin (10.10.99.20) por TLS ==
+remote_ip=10.10.99.20 proto=HTTP/1.1 server_name=ia.lab.internal uri=/v1/chat/completions status=200
+
+== ollama ps ==
+NAME          ID              SIZE      PROCESSOR    CONTEXT    RUNNER      UNTIL              
+qwen3.5:2b    0689d44085e0    3.2 GB    100% GPU     65536      llamacpp    4 minutes from now    

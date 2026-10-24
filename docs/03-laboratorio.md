@@ -3,7 +3,8 @@
 Implementación de las dos topologías de `02-diseno.md` en la Dell G15 (WSL2 + Ubuntu 24.04 +
 Docker Engine) y de la prueba que las compara. En el Día 2 todos los servicios eran **nodos de
 prueba** (`lab/imagen`): abren los puertos del diseño y responden con su nombre. En el Día 3
-**Ollama y Caddy ya son reales** (sección 7) y ocupan la misma IP y puerto que sus nodos; los
+**Ollama, Caddy y Hermes ya son reales** (sección 7) y ocupan la misma IP y puerto que sus
+nodos (Hermes solo en la topología segmentada, porque la red actual no lo tiene); los
 proyectos, el colector y los clientes siguen siendo nodos de prueba.
 
 ## 1. Entorno
@@ -29,7 +30,8 @@ Aprovisionamiento reproducible: `scripts/wsl/01-docker-engine.sh`, `02-nvidia-to
 | `nftables/netseg.nft` | Tabla `inet netseg`: `forward` con política *drop* y `input` de los segmentos hacia el host |
 | `matriz/casos.txt` | 35 casos TCP (una celda de la matriz de §5 cada uno), con lo esperado en cada topología |
 | `caddy/Caddyfile` | Caddy como puerta de la IA: TLS con CA interna, registro JSON y *streaming* sin búfer (Día 3) |
-| `ca/` | Aquí se copia en ejecución el certificado raíz (público) de la CA interna; nada de esta carpeta se versiona |
+| `ca/` | Aquí se copia en ejecución el certificado raíz (público) de la CA interna y un paquete con las CA públicas; nada de esta carpeta se versiona |
+| `hermes/config.yaml` | Configuración de Hermes (modelo, endpoint, contexto), montada de solo lectura (Día 3) |
 
 Los bridges tienen **nombre fijo** (`br-trabajo`, …) para que las reglas no dependan de
 identificadores que cambian al recrear la red. En la topología plana IoT e invitado usan
@@ -47,6 +49,8 @@ scripts/lab.sh plana             # topología plana
 scripts/lab.sh apagar            # baja todo y descarga netseg
 scripts/modelo.sh                # valida D9: contexto de 64 K, 100 % GPU, aguja en 57 K tokens
 scripts/latencia-api.sh          # latencia de la API por cada ruta de la topología levantada
+scripts/hermes-prueba.sh         # Hermes: sin puertos de entrada, config de solo lectura, una pregunta por TLS
+docker exec hermes hermes chat -q "..." -Q     # usar Hermes (no hay pasarela de chat)
 ```
 
 El modelo se descarga **una sola vez, en la topología plana** (la única con salida a internet):
@@ -189,7 +193,30 @@ el primer byte con la API en la nube. La GPU genera ≈ 94 tokens/s. El arranque
 fuera de la GPU) tardó 3 s con el archivo en caché de disco y hasta 10–40 s la primera vez tras
 crear el contenedor.
 
-### 7.4 Memoria: el límite de commit de Windows
+### 7.4 Hermes Agent en Admin
+
+Hermes v0.22.5 (imagen oficial fijada por digest) vive solo en la VLAN 99 (`10.10.99.20`). Se
+opera por `docker exec hermes hermes chat -q "..." -Q`; no se activa ninguna pasarela de chat.
+Lo que `scripts/hermes-prueba.sh` comprueba (`evidencia/dia3/hermes.txt`):
+
+- **Llega a la IA solo por Caddy con TLS**: `https://ia.lab.internal/v1`, aceptando la CA interna
+  con `SSL_CERT_FILE` (un paquete con las CA públicas más la interna, para que el Día 6 pueda
+  llegar también a GitHub). El registro de Caddy muestra la petición:
+  `remote_ip=10.10.99.20 server_name=ia.lab.internal uri=/v1/chat/completions status=200`.
+  Hermes no puede alcanzar Ollama directo (casos `A03` de la matriz).
+- **Sin puertos de entrada desde la red**: solo escucha en loopback (su API local en
+  `127.0.0.1:8642`); desde otro equipo de la VLAN 99 ese puerto no abre.
+- **Sin acceso al host**: no monta `docker.sock` ni carpetas del host; sus únicos montajes son
+  la CA (solo lectura), su configuración (solo lectura) y un volumen para sesiones y memoria.
+- **No puede cambiar su propia configuración**: `config.yaml` sale del repositorio y se monta
+  de solo lectura (`Read-only file system` al intentar escribirlo). Es la aplicación práctica
+  de D7: los cambios pasan por el repositorio y el pipeline, no por el agente.
+
+Una pregunta simple tarda ≈ 16 s la primera vez (carga del modelo y el prompt de sistema de
+Hermes, que incluye los esquemas de sus herramientas) con 100 % GPU y contexto 65536. La
+calidad de un modelo de 2 B para llamar herramientas no se evalúa aquí: es trabajo del Día 6.
+
+### 7.5 Memoria: el límite de commit de Windows
 
 Durante el Día 3 la VM de WSL se cayó una vez (volcado de *kernel panic* en
 `%TEMP%\wsl-crashes`) y Windows mostró "Sin memoria virtual". La causa no es la RAM libre sino el

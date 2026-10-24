@@ -97,6 +97,6 @@ carga="$(echo "$frio" | sed -n 's/.*"load_duration":\([0-9]*\).*/\1/p')"
   echo "**Arranque en frío** (modelo fuera de la GPU, primera petición): total ${total:-?} s, de los cuales la carga del modelo ${carga:+$((carga/1000000))} ms."
 } >> "$SALIDA"
 
-docker exec ollama ollama stop "$MODELO" >/dev/null 2>&1   # no dejar el modelo residente (ver docs/03-laboratorio.md §5)
+docker exec ollama ollama stop "$MODELO" >/dev/null 2>&1   # no dejar el modelo residente (ver docs/03-laboratorio.md §7.5)
 sync; echo 3 > /proc/sys/vm/drop_caches
 cat "$SALIDA"

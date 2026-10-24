@@ -211,7 +211,7 @@ La Dell se recablea directo al switch (puerto 3) en lugar de colgar del Deco Nod
 | Riesgo | Mitigación |
 |---|---|
 | 6 GB de VRAM no alcanzan para modelo + contexto 64 K | Resuelto en el Día 3 (D9): modelo híbrido de caché pequeña, 3.2 GB 100 % GPU; si hiciera falta más holgura, `OLLAMA_KV_CACHE_TYPE=q8_0` |
-| La memoria de Windows se agota al cargar el modelo (el límite de commit, no la RAM) | Observado en el Día 3: cargar el modelo cuesta ≈ 3.7 GB de commit y WSL se cayó una vez. Mitigación: `LLAMA_ARG_CACHE_RAM=1024`, `OLLAMA_KEEP_ALIVE=5m` y liberar la caché de la VM tras descargas; ver `03-laboratorio.md` §5 |
+| La memoria de Windows se agota al cargar el modelo (el límite de commit, no la RAM) | Observado en el Día 3: cargar el modelo cuesta ≈ 3.7 GB de commit y WSL se cayó una vez. Mitigación: `LLAMA_ARG_CACHE_RAM=1024`, `OLLAMA_KEEP_ALIVE=5m` y liberar la caché de la VM tras descargas; ver `03-laboratorio.md` §7.5 |
 | Disco: 34 GB libres en C: | Requerido ≈ 12–15 GB; liberar espacio antes del Día 2 |
 | Reglas de Docker interfieren con nftables propias | Tabla propia con prioridad anterior a la de Docker; se valida con la matriz de alcanzabilidad. Verificado en el Día 2: ver D11 y `03-laboratorio.md` §4 |
 | El droplet queda expuesto a internet | SSH solo con llave y, tras arrancar, solo por `wg1`; Cloud Firewall + nftables con denegación por defecto; WireGuard no responde a paquetes no autenticados |

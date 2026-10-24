@@ -31,14 +31,18 @@ lab/
   nftables/netseg.nft                          Política entre segmentos (tabla inet netseg)
   matriz/casos.txt                             Casos de la matriz de alcanzabilidad
   imagen/                                      Nodo de prueba (Alpine + herramientas de red)
+  caddy/Caddyfile                              Puerta de la IA: TLS con CA interna
+  hermes/config.yaml                           Configuración de Hermes (solo lectura)
 evidencia/
   dia1/               Salidas de la línea base (IP pública y MACs ocultas)
   dia2/               Entorno, matrices por topología, contadores y log de descartes
+  dia3/               Modelo a 64 K, candidatos, latencia de la API, Hermes y matrices
 scripts/
   linea-base.ps1      Captura de la línea base en Windows (solo lectura)
   wsl/                Aprovisionamiento de Ubuntu (Docker, GPU) y evidencia del entorno
   lab.sh, matriz.sh   Ciclo de vida del laboratorio y matriz de alcanzabilidad
   contadores.sh, netseg-sola.sh   Qué capa de filtrado detiene cada flujo
+  modelo.sh, latencia-api.sh, hermes-prueba.sh   Pruebas del Día 3 (modelo, API, Hermes)
 ```
 
 Se agregan día con día: `ansible/`, `hermes/` y `.github/workflows/`.

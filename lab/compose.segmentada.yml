@@ -66,6 +66,8 @@ volumes:
   caddy-data:
     name: caddy-data
     external: true
+  hermes-data:
+    name: hermes-data
 
 services:
   # Única puerta de enlace de aplicación: pata en Trabajo, IA y Admin (no enruta entre ellas).
@@ -157,10 +159,24 @@ services:
     networks:
       trabajo: { ipv4_address: 10.10.10.15 }
 
+  # Hermes Agent real (v0.22.5, imagen fijada por digest), solo en Admin y sin puertos de entrada.
+# No monta el socket de Docker ni nada del host; su configuración es de solo lectura y sale del
+# repositorio. Se usa por `docker exec hermes hermes chat -q "..." -Q` (no hay pasarela de chat).
   hermes:
-    <<: *nodo
+    image: nousresearch/hermes-agent@sha256:9c5561579f3ffdf333401797094ac3a743738d6c25d40f4331c7bf77b694238d
     container_name: hermes
-    environment: { NOMBRE: hermes }
+    restart: "no"
+    command: ["sleep", "infinity"]
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      HERMES_SKIP_CONFIG_MIGRATION: "1"
+      SSL_CERT_FILE: /ca/bundle.crt       # CA interna + CA públicas (GitHub, Día 6)
+      REQUESTS_CA_BUNDLE: /ca/bundle.crt
+    volumes:
+      - hermes-data:/opt/data               # sesiones y memoria
+      - ./hermes/config.yaml:/opt/data/config.yaml:ro
+      - ./ca:/ca:ro
     networks:
       admin: { ipv4_address: 10.10.99.20 }
 

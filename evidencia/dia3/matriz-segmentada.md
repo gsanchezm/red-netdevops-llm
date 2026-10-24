@@ -1,6 +1,6 @@
 # Matriz de alcanzabilidad · topología segmentada
 
-Generada 2026-10-24 01:38:33 -0600 con `scripts/matriz.sh segmentada` (política: docs/02-diseno.md §5).
+Generada 2026-10-24 01:48:13 -0600 con `scripts/matriz.sh segmentada` (política: docs/02-diseno.md §5).
 
 | Caso | Celda de §5 | Origen → destino:puerto | Esperado | Observado | Resultado |
 |---|---|---|---|---|---|

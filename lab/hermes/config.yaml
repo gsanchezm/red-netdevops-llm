@@ -1,0 +1,12 @@
+# Configuración de Hermes Agent en la VLAN 99 (Admin). Se monta de SOLO LECTURA en
+# /opt/data/config.yaml: el agente no puede cambiar su propia configuración; cualquier cambio
+# pasa por el repositorio (D7). No contiene secretos: Ollama no valida llave y la CA es pública.
+#
+# Hermes llega a la IA solo por Caddy con TLS (D5). La CA interna se acepta con SSL_CERT_FILE
+# (definida en compose.segmentada.yml); el nombre ia.lab.internal es un alias de Caddy en Admin.
+model:
+  default: qwen3.5:2b
+  provider: custom
+  base_url: https://ia.lab.internal/v1
+  api_key: sin-llave          # el campo es obligatorio para Hermes; Ollama no lo comprueba
+  context_length: 65536       # lo que sirve Ollama (D9); Hermes rechaza endpoints locales con menos de 64 K

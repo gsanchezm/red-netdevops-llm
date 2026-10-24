@@ -27,7 +27,12 @@ exportar_ca() {
   local destino="$LAB/ca/root.crt" origen="caddy:/data/caddy/pki/authorities/local/root.crt"
   mkdir -p "$LAB/ca"
   for _ in $(seq 1 60); do
-    docker cp "$origen" "$destino" 2>/dev/null && { chmod 644 "$destino"; echo "CA interna exportada a lab/ca/root.crt"; return 0; }
+    if docker cp "$origen" "$destino" 2>/dev/null; then
+      chmod 644 "$destino"
+      # Paquete para clientes que reemplazan el almacén de confianza (SSL_CERT_FILE): CA públicas + la interna.
+      cat /etc/ssl/certs/ca-certificates.crt "$destino" > "$LAB/ca/bundle.crt"; chmod 644 "$LAB/ca/bundle.crt"
+      echo "CA interna exportada a lab/ca/root.crt (y bundle.crt)"; return 0
+    fi
     sleep 1
   done
   echo "ADVERTENCIA: Caddy no generó su CA a tiempo" >&2; return 1
