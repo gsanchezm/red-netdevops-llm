@@ -97,6 +97,7 @@ fallas=0; bloq_filtro=0; bloq_ruta=0
     extra "Trabajo → https://ia.lab.internal/api/tags con la CA interna" 200 proyecto1 https://ia.lab.internal/api/tags --cacert /ca/root.crt
     extra "Trabajo → https://10.10.10.5/api/tags (por IP) con la CA interna" 200 proyecto1 https://10.10.10.5/api/tags --cacert /ca/root.crt
     extra "Admin → https://ia.lab.internal/api/tags con la CA interna" 200 hermes https://ia.lab.internal/api/tags --cacert /ca/root.crt
+    extra "VPN emulada → https://10.10.10.5/api/tags (por IP, por el túnel) con la CA interna" 200 cliente-remoto https://10.10.10.5/api/tags --cacert /ca/root.crt
     extra "Trabajo → https://ia.lab.internal sin la CA interna (el certificado no es público)" fallo proyecto1 https://ia.lab.internal/api/tags
     extra "Invitados → https://ia.lab.internal (no resuelve: sin pata de Caddy)" fallo invitado https://ia.lab.internal/api/tags --cacert /ca/root.crt
   else

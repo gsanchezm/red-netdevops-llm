@@ -58,9 +58,9 @@ con la red del módem (192.168.100.0/24), ni con las redes por defecto de Docker
 `caddy` es el único equipo con pata en varios segmentos (10, 20 y 99): funciona como
 **puerta de enlace de aplicación** hacia la IA. Ollama solo existe en el segmento 20.
 Nombre del servicio: `ia.lab.internal` (TLD `.internal`, reservado para uso privado),
-publicado como alias de `caddy` en cada red y como `10.10.50.1:443` y `10.10.51.2:443`
-para las VPN (el certificado interno incluye esas IP, porque el celular no resuelve
-nombres `.internal`).
+publicado como alias de `caddy` en cada red. Las VPN no usan ese nombre (el celular no
+resuelve nombres `.internal`): llegan a Caddy por su **IP real, `10.10.10.5:443`**, que la
+VPN anuncia como ruta `/32` y sin NAT; su certificado interno ya cubre esa IP (D12).
 
 ## 4. Servicios y puertos
 
@@ -85,16 +85,17 @@ respuesta se permite por estado (`ct state established,related`).
 | **IA** | ❌ | — | (solo respuestas) | ❌ | ❌ | ❌ |
 | **Admin** | ❌ | ❌ | ✅ | — | ❌ | ✅ solo TCP 443 |
 | **Invitados/IoT** | ❌ | ❌ | ❌ | ❌ | ✅ (mismo segmento) | ✅ |
-| **VPN emulada (`wg0`)** | ❌ | ❌ | ✅ vía 10.10.50.1:443 | ❌ | ❌ | ❌ |
-| **VPN real (`wg1`)** | ❌ | ❌ | ✅ vía 10.10.51.2:443 | ❌ | ❌ | ❌ |
+| **VPN emulada (`wg0`)** | ❌ | ❌ | ✅ solo 10.10.10.5:443 | ❌ | ❌ | ❌ |
+| **VPN real (`wg1`)** | ❌ | ❌ | ✅ solo 10.10.10.5:443 | ❌ | ❌ | ❌ |
 | **Internet emulado** | ❌ | ❌ | ❌ | ❌ | ❌ | — (solo UDP 51820 al host) |
 
 Excepción temporal: durante el aprovisionamiento el modelo se descarga en la topología
 plana (que sí tiene salida) sobre un volumen compartido; la topología segmentada monta
 ese volumen y nunca necesita salida.
 
-En el droplet, la cadena `forward` solo permite `wg1 → wg1` del celular (.3) a la Dell
-(.2) por TCP 443; el resto se descarta. El Cloud Firewall de DigitalOcean repite la misma
+En el droplet, la cadena `forward` solo permite, dentro de `wg1`, el tráfico del celular
+(`10.10.51.3`) hacia Caddy (`10.10.10.5`, TCP 443), que el droplet reenvía al par de la Dell
+según su `AllowedIPs` (D12); el resto se descarta. El Cloud Firewall de DigitalOcean repite la misma
 política afuera del droplet (solo UDP 51820 de entrada, y SSH desde la IP de casa).
 
 ## 6. Diagrama lógico (topología segmentada)
@@ -155,12 +156,13 @@ directo, pero obliga a modificar la red de la casa y a eliminar un NAT.
 | D3 | Un bridge por segmento + nftables con *drop* por defecto | Separa dominios de broadcast y aplica mínimo privilegio entre segmentos | Una sola red con listas de IPs (no separa L2) |
 | D4 | Segmento IA `internal` sin salida | Los datos y prompts no pueden salir aunque un contenedor se comprometa | Solo reglas de salida (un error de regla abriría la fuga) |
 | D5 | Caddy como única puerta hacia la IA, TLS con CA interna | Un solo punto de control (TLS, registro, token por proyecto); no requiere ACME ni salida a internet | Exponer Ollama `:11434` directo (sin cifrado ni control) |
-| D6 | WireGuard en el host con túnel dividido | UDP con sobrecarga baja (MTU 1420); no responde a paquetes no autenticados, así que no se revela ante escaneos; solo enruta 10.10.50.0/24 y el resto del tráfico del cliente no pasa por el túnel | OpenVPN (más sobrecarga), túnel completo |
+| D6 | WireGuard en el host con túnel dividido | UDP con sobrecarga baja (MTU 1420); no responde a paquetes no autenticados, así que no se revela ante escaneos; el cliente solo enruta por el túnel el rango del laboratorio (10.10.0.0/16) y el resto de su tráfico no pasa por él; lo que alcanza lo decide la política del host (D12), no su configuración | OpenVPN (más sobrecarga), túnel completo |
 | D7 | Hermes en Admin, solo lectura, propone PR | Separación de funciones: la IA observa y propone; la red solo cambia por el pipeline con aprobación humana. El control efectivo es la protección de la rama `main` (PR + CI + aprobación obligatorios), no la buena conducta del agente | Darle shell al host (riesgo de cambios no auditados) |
 | D8 | GitHub público + runner autohospedado en WSL | El runner solo abre conexiones salientes (funciona tras doble NAT/CGNAT); aprobación manual por *Environment* | Exponer SSH del servidor a internet |
 | D9 | Modelo `qwen3.5:2b` (Q8_0, 1.9 B) con contexto de 64 K y caché KV f16 | Hermes exige ≥ 64 K de contexto. **La estimación original (`qwen2.5:3b`, ≈ 4.3 GB a 64 K) falló al medirla en el Día 3**: Ollama recorta el contexto al de entrenamiento del modelo (32 K en qwen2.5) por variable de entorno, por API y por Modelfile (`WARN requested context size too large for model`), así que hace falta un modelo entrenado con ≥ 64 K y de caché KV barata. `qwen3.5:2b` (262 K de entrenamiento, con herramientas) es híbrido: solo 6 de sus 24 capas llevan atención, y la caché ocupa **768 MiB a 64 K** (qwen2.5 habría necesitado ≈ 2.4 GB). El modelo entero ocupa **3.2 GB, 100 % GPU**, con ≈ 1.5 GB de holgura. Verificado con un prompt de 57 647 tokens con una "aguja" al inicio, recuperada (`evidencia/dia3/modelo-64k.txt`) | `qwen2.5:3b` (recorte a 32 K); `granite4.1:3b` (128 K, con herramientas, pero su caché f16 a 64 K lo lleva a 7.8 GB y 45 % en CPU: solo cabe con caché `q4_0`, 3.8 GB 100 % GPU; medido y reservado como alternativa); `qwen3.5:4b` (no se pudo descargar: `Error: EOF` en tres intentos); modelos de 7–8 B (desbordan a CPU) |
 | D10 | Concentrador WireGuard en un droplet dedicado de DigitalOcean | La Dell abre la conexión hacia afuera (keepalive 25 s), así atraviesa el doble NAT sin reenviar puertos ni tocar la casa; IP pública fija; región elegida por latencia medida. El TLS de Caddy es extremo a extremo: el droplet solo descifra el salto WireGuard y ve tráfico TLS y metadatos. Dedicado para aislar fallas y reglas de otros proyectos | Reenviar puertos en ONT + Deco (modifica la red; posible CGNAT); Tailscale (plano de control de un tercero); reutilizar otro droplet; correr Ollama o Hermes en el droplet (los prompts saldrían de la red en texto claro, sin GPU, +latencia WAN en cada petición y API expuesta en internet) |
 | D11 | La política entre segmentos vive en una tabla `nftables` propia que debe cumplir la matriz **sin depender de Docker**; las reglas de Docker quedan como respaldo (backend `iptables`) | Docker ya aísla bridges y protege la IP de cada contenedor (`raw/PREROUTING`), pero eso no lo controla el proyecto ni existe en un router real (§9). Medido en el Día 2: Docker solo falla 2 de 35 casos (Ollama iniciando conexiones y la salida de Admin por TCP 80), y con sus reglas DROP retiradas `netseg` sola detiene los 14 flujos bloqueados que llegan al filtrado (35/35; otros 9 no tienen ruta de salida por D4). Orden de evaluación: `raw` −300 → `netseg` −10 → `filter` de Docker 0 | `--firewall-backend nftables` de Docker (opción nueva del daemon: la política seguiría mezclada con reglas ajenas); `--iptables=false` (obliga a reescribir NAT y publicación de puertos a mano) |
+| D12 | Las VPN llegan a Caddy por su IP real (`10.10.10.5:443`, ruta `/32` anunciada por la VPN, sin NAT), no por una dirección traducida como `10.10.50.1:443` | Medido en el Día 4: con DNAT hacia Caddy, el TLS se establece pero el certificado no corresponde. Un cliente que se conecta a una **IP** no envía SNI; Caddy elige entonces el certificado por la IP *a la que llegó la conexión*, que tras el DNAT es `10.10.10.5`, y presenta el de `10.10.10.5` (SAN `IP:10.10.10.5`), así que curl rechaza `10.10.50.1` (`no alternative certificate subject name matches`). El celular no puede usar el nombre (no resuelve `.internal`). Sin NAT, la IP de destino y la del certificado coinciden. Costo: Docker descarta por defecto lo que entra a un bridge desde fuera, así que hay que exceptuar `wg0` en tres puntos (`raw`, `netseg`, `DOCKER-USER`; `03-laboratorio.md` §8) | DNAT con puerto publicado en `10.10.50.1` (certificado incorrecto); SNI con `--resolve` (el celular no puede); un certificado con varias IP firmado a mano por la CA de Caddy (más piezas que mantener); `gateway_mode=routed` de Docker (quita el NAT de salida: Trabajo perdió internet, casos `T07`/`T08`) |
 
 ## 8. Plan de pruebas y métricas (se aplica a ambas topologías)
 

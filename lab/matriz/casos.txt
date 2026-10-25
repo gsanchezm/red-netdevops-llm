@@ -38,10 +38,15 @@ G05 | Invitados→Caddy     | invitado  | caddy@trabajo    | 443   | bloquear | 
 G06 | Invitados→Ollama    | invitado  | ollama           | 11434 | bloquear | permitir |
 G07 | Invitados→Admin     | invitado  | colector         | 9100  | bloquear | permitir |
 G08 | Invitados→Internet  | invitado  | 1.1.1.1          | 443   | permitir | permitir |
-# --- Internet emulado (203.0.113.0/24) ---
-E01 | Internet→Caddy      | cliente-remoto | caddy@trabajo | 443  | bloquear | - | solo UDP 51820 al host (Día 4)
-E02 | Internet→Ollama     | cliente-remoto | ollama        | 11434 | bloquear | - |
-E03 | Internet→Trabajo    | cliente-remoto | proyecto1     | 8080 | bloquear | - |
-E04 | Internet→Admin      | cliente-remoto | colector      | 9100 | bloquear | - |
-E05 | Internet→Invitados  | cliente-remoto | iot-sensor    | 1883 | bloquear | - |
+# --- Internet emulado (203.0.113.0/24) y VPN emulada (wg0, Día 4) ---
+# cliente-remoto es el origen de ambos: con el túnel arriba enruta 10.10.0.0/16 por wg0, así que
+# E02–E05 viajan por la VPN y los corta `forward` de netseg (antes del Día 4 no tenían ruta).
+# E01 (Internet→Caddy) pasó a V01: con la VPN, llegar a Caddy :443 es el flujo permitido.
+E02 | Internet→Ollama     | cliente-remoto | ollama        | 11434 | bloquear | - | por wg0, lo corta netseg
+E03 | Internet→Trabajo    | cliente-remoto | proyecto1     | 8080 | bloquear | - | por wg0, lo corta netseg
+E04 | Internet→Admin      | cliente-remoto | colector      | 9100 | bloquear | - | por wg0, lo corta netseg
+E05 | Internet→Invitados  | cliente-remoto | iot-sensor    | 1883 | bloquear | - | por wg0, lo corta netseg
 E06 | Internet→Internet   | cliente-remoto | 1.1.1.1       | 443  | bloquear | - | el cliente remoto no tiene salida real
+E07 | Internet→Host       | cliente-remoto | 203.0.113.1   | 443  | bloquear | - | del host solo responde UDP 51820; el resto lo descarta `input` (sin-respuesta, no rechazado)
+V01 | VPN→Caddy           | cliente-remoto | caddy@trabajo | 443  | permitir | - | único flujo de la VPN: Caddy por su IP real (control positivo de E02–E05)
+V02 | VPN→Caddy (IA)      | cliente-remoto | caddy@ia      | 443  | bloquear | - | la pata de Caddy en el segmento de IA no se alcanza

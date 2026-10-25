@@ -4,7 +4,7 @@
 FROM alpine:3.22
 
 RUN apk add --no-cache \
-      bind-tools curl iperf3 iproute2 iputils-ping netcat-openbsd socat tcpdump
+      bind-tools curl iperf3 iproute2 iputils-ping netcat-openbsd openssl socat tcpdump wireguard-tools
 
 COPY entrada.sh /usr/local/bin/entrada.sh
 RUN chmod +x /usr/local/bin/entrada.sh

@@ -17,7 +17,7 @@
 # Carga idempotente:  nft -f lab/nftables/netseg.nft     Descarga:  nft delete table inet netseg
 
 define WAN = "eth0"        # interfaz de salida del host ("internet" real)
-define LAB = { "br-trabajo", "br-ia", "br-invitados", "br-admin", "br-inet" }
+define LAB = { "br-trabajo", "br-ia", "br-invitados", "br-admin", "br-inet", "wg0" }
 
 table inet netseg
 delete table inet netseg
@@ -39,6 +39,10 @@ table inet netseg {
         # VLAN 20 (IA): solo Caddy abre conexiones hacia Ollama; Ollama nunca inicia ninguna.
         iifname "br-ia" oifname "br-ia" ip saddr 10.10.20.5 ip daddr 10.10.20.10 tcp dport 11434 counter accept comment "Caddy -> Ollama :11434"
         iifname "br-ia" oifname "br-ia" ip saddr 10.10.20.5 ip daddr 10.10.20.10 icmp type echo-request counter accept comment "ping Caddy -> Ollama (mediciones)"
+
+        # VPN emulada (wg0): el cliente solo llega a Caddy :443 por su IP real (la VPN anuncia 10.10.10.5/32,
+        # sin NAT; el certificado de Caddy cubre esa IP). Docker deja pasar wg0 (trusted_host_interfaces).
+        iifname "wg0" oifname "br-trabajo" ip daddr 10.10.10.5 tcp dport 443 counter accept comment "VPN emulada -> Caddy :443"
 
         # Salida a internet por segmento (IA e Internet emulado no tienen).
         iifname "br-trabajo" ip saddr 10.10.10.5 oifname $WAN counter drop comment "Caddy no necesita salida a internet (D5)"

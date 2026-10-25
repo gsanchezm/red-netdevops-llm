@@ -18,6 +18,11 @@ networks:
     driver: bridge
     driver_opts:
       com.docker.network.bridge.name: br-trabajo
+      # La VPN (wg0) llega a Caddy por su IP real, sin NAT. Docker descarta por defecto lo que entra a la
+      # IP de un contenedor por otra interfaz (capa raw): aquí se exceptúa wg0. Su cadena DOCKER también
+      # lo descarta; esa excepción la pone scripts/wg0.sh en DOCKER-USER. netseg decide qué pasa de verdad.
+      # (No sirve gateway_mode "routed": quita el NAT de salida y Trabajo perdería internet.)
+      com.docker.network.bridge.trusted_host_interfaces: wg0
     ipam:
       config:
         - subnet: 10.10.10.0/24
@@ -71,15 +76,17 @@ volumes:
 
 services:
   # Única puerta de enlace de aplicación: pata en Trabajo, IA y Admin (no enruta entre ellas).
-  # TLS con la CA interna de Caddy, sin ACME ni salida a internet. El certificado cubre
-  # ia.lab.internal y las IP desde las que se llega (el celular no resuelve nombres .internal).
+  # TLS con la CA interna de Caddy, sin ACME ni salida a internet. Un certificado por nombre:
+  # ia.lab.internal y las IP de Caddy (el celular no resuelve nombres .internal ni envía SNI para una
+  # IP, y Caddy entonces elige el certificado por la IP a la que llegó la conexión; por eso las VPN
+  # llegan a 10.10.10.5 por su IP real y no a una dirección traducida, ver docs/02-diseno.md §3).
   # Imagen fijada por digest (caddy 2.11.7-alpine).
   caddy:
     image: caddy@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
     container_name: caddy
     restart: "no"
     environment:
-      SITIOS: "ia.lab.internal, 10.10.10.5, 10.10.99.5, 10.10.50.1, 10.10.51.2"
+      SITIOS: "ia.lab.internal, 10.10.10.5, 10.10.99.5"
       UPSTREAM: "10.10.20.10:11434"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
@@ -201,9 +208,16 @@ services:
     networks:
       invitados: { ipv4_address: 10.10.30.11 }
 
+  # Cliente WireGuard emulado (Día 4): su wg0 la crea scripts/wg0.sh con la configuración que genera
+  # en lab/wireguard/ (no versionada). Con el túnel enruta 10.10.0.0/16 por wg0: lo que no debe
+  # alcanzar lo corta netseg en el host, no la configuración del cliente.
   cliente-remoto:
     <<: *nodo
     container_name: cliente-remoto
+    cap_add: [NET_ADMIN]
     environment: { NOMBRE: cliente-remoto }
+    volumes:
+      - ./ca:/ca:ro
+      - ./wireguard/wg0-cliente.conf:/etc/wireguard/wg0.conf:ro
     networks:
       inet: { ipv4_address: 203.0.113.10 }

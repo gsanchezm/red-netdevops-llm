@@ -1,4 +1,4 @@
-# 03 · Laboratorio emulado (Días 2 y 3)
+# 03 · Laboratorio emulado (Días 2 a 4)
 
 Implementación de las dos topologías de `02-diseno.md` en la Dell G15 (WSL2 + Ubuntu 24.04 +
 Docker Engine) y de la prueba que las compara. En el Día 2 todos los servicios eran **nodos de
@@ -28,10 +28,11 @@ Aprovisionamiento reproducible: `scripts/wsl/01-docker-engine.sh`, `02-nvidia-to
 | `compose.plana.yml` | Topología "antes": un bridge `br-plana` 10.10.0.0/24, sin reglas |
 | `compose.segmentada.yml` | Topología "después": `br-trabajo` (10), `br-ia` (20, `internal`), `br-invitados` (30), `br-admin` (99), `br-inet` (Internet emulado, `internal`) con IP fija por servicio |
 | `nftables/netseg.nft` | Tabla `inet netseg`: `forward` con política *drop* y `input` de los segmentos hacia el host |
-| `matriz/casos.txt` | 35 casos TCP (una celda de la matriz de §5 cada uno), con lo esperado en cada topología |
+| `matriz/casos.txt` | 37 casos TCP (una celda de la matriz de §5 cada uno; 35 al cierre del Día 2), con lo esperado en cada topología |
 | `caddy/Caddyfile` | Caddy como puerta de la IA: TLS con CA interna, registro JSON y *streaming* sin búfer (Día 3) |
 | `ca/` | Aquí se copia en ejecución el certificado raíz (público) de la CA interna y un paquete con las CA públicas; nada de esta carpeta se versiona |
 | `hermes/config.yaml` | Configuración de Hermes (modelo, endpoint, contexto), montada de solo lectura (Día 3) |
+| `wireguard/` | Aquí `scripts/wg0.sh` genera las llaves y las configuraciones de `wg0` (servidor y cliente); nada de esta carpeta se versiona (Día 4) |
 
 Los bridges tienen **nombre fijo** (`br-trabajo`, …) para que las reglas no dependan de
 identificadores que cambian al recrear la red. En la topología plana IoT e invitado usan
@@ -41,8 +42,10 @@ identificadores que cambian al recrear la red. En la topología plana IoT e invi
 
 ```bash
 # como root (carga reglas nftables); desde Windows:  wsl -d Ubuntu-24.04 -u root --cd ~/red-netdevops-llm -- ...
-scripts/lab.sh segmentada        # carga netseg y levanta la topología segmentada
+scripts/lab.sh segmentada        # carga netseg, levanta wg0 (scripts/wg0.sh) y la topología segmentada
 scripts/matriz.sh segmentada     # matriz de alcanzabilidad -> evidencia/dia2/matriz-segmentada.md
+scripts/wg0.sh estado            # wg show del host y de cliente-remoto (servidor | cliente | abajo | estado)
+scripts/wg0-evidencia.sh         # evidencia de la VPN emulada -> evidencia/dia4/wg0-emulada.txt
 scripts/contadores.sh            # contadores de las tres capas de filtrado
 scripts/netseg-sola.sh           # prueba netseg sin las reglas DROP de Docker (restaura al terminar)
 scripts/lab.sh plana             # topología plana
@@ -74,6 +77,7 @@ esperado (`permitir` = el puerto abre; `bloquear` = no abre). Cada destino tiene
 | Segmentada solo con reglas de Docker (estado *rojo*) | 35 | **2**: `I02` (Ollama inicia conexión hacia Caddy) y `A07` (Admin sale por TCP 80) | `matriz-segmentada-sin-netseg.md` |
 | Segmentada con `netseg` | 35 | 0 | `matriz-segmentada.md` |
 | Segmentada solo con `netseg` (reglas DROP de Docker retiradas) | 35 | 0 | `matriz-segmentada-netseg-sola.md` |
+| Segmentada con VPN emulada (Día 4: `V01`–`V02`, `E07` y la comprobación HTTPS por el túnel) | 44 | 0 | `evidencia/dia4/matriz-segmentada.md` (§8) |
 
 Los 35 casos de la segmentada son los 34 de `casos.txt` más la comprobación de que Admin
 resuelve nombres y abre `https://github.com` aun con salida limitada a TCP 443 (HTTP 200: el
@@ -130,10 +134,10 @@ intentando iniciar una conexión).
 
 | Qué | Cuándo |
 |---|---|
-| Filas VPN emulada y VPN real de la matriz (`wg0`, `wg1`) y UDP 51820 al host | Día 4 |
+| ~~Filas VPN emulada de la matriz (`wg0`) y UDP 51820 al host~~ | Hecho en el Día 4 (§8); falta la VPN real (`wg1`) |
 | Latencia ICMP intra e inter-segmento y `iperf3`: el costo de enrutar y filtrar se mide aquí contra la plana | Día 6 |
 | `netseg` como servicio de systemd y Ansible | Día 5 |
-| Verificar con un apretón de manos que el certificado de Caddy cubre `10.10.50.1` y `10.10.51.2` (`openssl s_client`) | Día 4, cuando existan `wg0` y `wg1` |
+| ~~Verificar que el certificado de Caddy cubre `10.10.50.1` y `10.10.51.2` (`openssl s_client`)~~ | Verificado en el Día 4: **no lo cubre** tras el DNAT; las VPN usan `10.10.10.5` (D12, §8.2) |
 | Calidad de Hermes con un modelo de 2 B para llamar herramientas; reintentar `qwen3.5:4b` | Día 6 |
 
 ## 7. Servicios reales: Ollama y Caddy (Día 3)
@@ -169,7 +173,7 @@ sigue mostrando `100% GPU` con contexto 65536 (`evidencia/dia3/modelo-64k.txt`).
 Caddy es la única puerta hacia Ollama: termina TLS con su **CA interna** (sin ACME ni salida a
 internet) y reenvía a `10.10.20.10:11434` sin búfer, para que los tokens salgan al instante.
 Responde por `ia.lab.internal` (alias de Docker en Trabajo y Admin) y por las IP 10.10.10.5 y
-10.10.99.5; el certificado ya incluye 10.10.50.1 y 10.10.51.2 para las VPN del Día 4.
+10.10.99.5; las VPN del Día 4 llegan por 10.10.10.5 (D12, §8.2): Caddy emite un certificado por cada nombre de `SITIOS`.
 
 La llave privada de la CA vive solo en el volumen `caddy-data`. `lab.sh` copia a `lab/ca/` solo
 el certificado raíz, que los clientes montan en `/ca` de solo lectura. La matriz comprueba que
@@ -251,3 +255,79 @@ pregunta de Hermes): **0 eventos OOM** en la VM, memoria disponible mínima de 2
 el margen mínimo de commit de Windows fue de **3.2 GB** (sin el tope había llegado a 1.2 GB). Para
 deshacerlo basta borrar el archivo y ejecutar `wsl --shutdown`. No se fijó `vmIdleTimeout`: sin
 sesiones abiertas WSL sigue apagando la VM, lo cual conviene mientras el laboratorio no se usa.
+
+## 8. VPN emulada: `wg0` y `cliente-remoto` (Día 4)
+
+`scripts/lab.sh segmentada` levanta ahora la VPN completa: carga `netseg`, crea `wg0` en el host
+(`scripts/wg0.sh servidor`), levanta la topología y, al final, el cliente (`wg0.sh cliente`).
+
+### 8.1 Cómo está armada
+
+| Pieza | Valor |
+|---|---|
+| Servidor | `wg0` en el host, `10.10.50.1/24`, UDP 51820. El kernel de WSL (6.18) trae WireGuard integrado: `ip link add … type wireguard` funciona aunque `lsmod` no lo liste, y solo hizo falta `apt install wireguard-tools` |
+| Cliente | Contenedor `cliente-remoto` (`203.0.113.10`, red `internal` sin ruta por defecto) con `NET_ADMIN`, `wg0` `10.10.50.2/24`, `Endpoint = 203.0.113.1:51820`, `PersistentKeepalive = 25` |
+| Qué enruta el cliente | `AllowedIPs = 10.10.0.0/16`: **todo el laboratorio** por el túnel, a propósito. Lo que puede alcanzar lo decide `netseg` en el host, no una configuración que el cliente pueda cambiar; así los casos `E02`–`E05` prueban la política de verdad (antes del Día 4 no tenían ruta y ningún filtro los veía) |
+| Llaves | Las genera `wg0.sh` una vez en `lab/wireguard/wg0.conf` y `wg0-cliente.conf` (0600, ignorados por git: el repositorio es público) |
+| Política | `wg0` entra en `$LAB` de `netseg` (si no, su `input` aceptaría todo lo que llega desde `wg0`) y una sola regla de `forward`: `wg0 → br-trabajo`, destino `10.10.10.5`, TCP 443 |
+
+### 8.2 Tres hallazgos de la construcción
+
+**1. Con DNAT el certificado no coincide (D12).** El primer diseño publicaba Caddy en `10.10.50.1:443`
+(Docker traduce a `10.10.10.5`). El túnel, el DNAT y el filtrado funcionaron, pero
+`curl --cacert … https://10.10.50.1` falló con `no alternative certificate subject name matches target
+ipv4 address '10.10.50.1'`. `openssl s_client` mostró por qué: sin SNI (un cliente no lo envía para una IP)
+Caddy elige el certificado por la IP local de la conexión, que tras el DNAT es `10.10.10.5`, y presentó
+`SAN: IP:10.10.10.5`. Con SNI `ia.lab.internal` el certificado sí era el correcto, pero el celular no
+resuelve `.internal`. Solución: sin NAT, la VPN anuncia la ruta `10.10.10.5/32` y el cliente se conecta a
+la IP real. Aplica igual a `wg1` (celular).
+
+**2. Docker pide la excepción en tres capas, no en una.** Acceder a la IP de un contenedor desde
+una interfaz que no es su bridge cruza las tres capas de §4, y cada una necesita su propia regla:
+
+| Capa | Qué la descartaba | Excepción |
+|---|---|---|
+| Docker `raw/PREROUTING` | Todo lo que llega a la IP de un contenedor por otra interfaz | `com.docker.network.bridge.trusted_host_interfaces: wg0` en la red `trabajo` (Docker la aplica a **todos** los contenedores de Trabajo; las dos capas siguientes lo acotan a Caddy :443) |
+| `netseg` `forward` | Política *drop* | La regla `wg0 → 10.10.10.5:443` |
+| Docker `filter`, cadena `DOCKER` | `DROP !br-trabajo → br-trabajo` (descartó exactamente los 18 SYN que `netseg` había aceptado) | Una regla en `DOCKER-USER` (la cadena que Docker evalúa antes que las suyas), puesta y quitada por `wg0.sh` |
+
+La tercera se encontró por el contador de la regla `DROP` de Docker (18 paquetes = los 18 SYN). Se
+probó antes `gateway_mode_ipv4=routed` con el puerto 443 publicado, que abre las dos capas de Docker sin
+reglas manuales, pero **quita el NAT de salida** de la red: los casos `T07` y `T08` (Trabajo → internet)
+fallaron y se descartó. Con `routed` Docker además abría un proxy en `[::]:443` del host (IPv6), por fuera de `netseg`.
+
+**3. La construcción de la imagen choca con `netseg`.** `lab-nodo` ahora trae `wireguard-tools` y
+`openssl`; reconstruirla con `netseg` cargada falló (`apk` sin red) porque el *build* sale por `docker0`,
+que la política bloquea. `lab.sh` construye antes de cargar la política (`construir`).
+
+También se comprobó que el cliente, en una red `internal`, sí alcanza al host: hay apretón de manos
+(`br-inet → input udp 51820`, regla del Día 2); la red `internal` solo bloquea el reenvío hacia afuera.
+
+### 8.3 Resultados (`evidencia/dia4/`)
+
+| Prueba | Resultado |
+|---|---|
+| Matriz segmentada (`matriz-segmentada.md`) | **44 casos, 0 fallas** (los 41 del Día 3, donde `E01` pasó a `V01`, más `E07`, `V02` y la comprobación HTTPS por el túnel). Hay 25 bloqueos: 21 los descarta el filtrado y 4 no tienen ruta |
+| `V01` VPN → Caddy `10.10.10.5:443` | permitido; HTTPS 200 con la CA interna y el certificado correcto (`SAN IP:10.10.10.5`) |
+| `E02`–`E05`, `V02` | por `wg0` no llegan a Ollama, Trabajo, Admin, IoT ni a la pata de IA de Caddy: *sin-respuesta*, descartados por `forward` (el contador de la regla de denegación sube) |
+| `E07` Internet → host `:443` | *sin-respuesta*: del host solo responde UDP 51820 |
+| Latencia por el túnel (50 pings) | 0.56 ms de media (máx. 1.26) frente a 0.09 ms sin túnel por el mismo bridge: ≈ 0.5 ms de cifrado y filtrado; 0 % de pérdida |
+| HTTPS por el túnel (5 solicitudes) | TCP 0.5–0.7 ms, TLS ≈ 4.7 ms, total 7.5–9.1 ms |
+| `wg0` | MTU 1420, handshake renovado cada 25 s por el *keepalive* |
+
+Limitaciones: `iperf3` por el túnel se deja para las mediciones finales del Día 6, con la plana
+(y `netseg-sola.sh` cuenta ahora más casos que en el texto del Día 2: se vuelve a medir entonces).
+Para que el servidor esté disponible mientras se prueba hay que mantener viva la VM
+(`wsl -d Ubuntu-24.04 -- sleep infinity`).
+
+### 8.4 Qué cambia al sumar `wg1` (VPN real, droplet y celular)
+
+`wg1` repite el patrón de `wg0` hacia Caddy; lo que cambia es el rumbo de las rutas:
+
+| Dónde | Qué hay que agregar |
+|---|---|
+| Dell, `netseg` | `"wg1"` en `$LAB`; regla `forward` `wg1 → br-trabajo`, destino `10.10.10.5`, TCP 443 |
+| Dell, Docker | `trusted_host_interfaces: wg0:wg1` (el separador es **dos puntos**: comprobado, con coma Docker crea una sola interfaz llamada `wg0,wg1`); la regla de `DOCKER-USER` para `wg1` en `wg0.sh` |
+| Droplet, par de la Dell | `AllowedIPs = 10.10.51.2/32, 10.10.10.5/32` (si no, el droplet no sabe reenviar hacia Caddy ni acepta sus respuestas) |
+| Celular | `AllowedIPs` con `10.10.51.0/24` y `10.10.10.5/32`; destino `https://10.10.10.5`; instalar el certificado raíz de la CA interna |
+| Dell, par del droplet | `AllowedIPs = 10.10.51.0/24` (las respuestas de Caddy al `10.10.51.3` vuelven por `wg1`) |

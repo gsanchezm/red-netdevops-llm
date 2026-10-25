@@ -2,7 +2,7 @@
 # Ciclo de vida del laboratorio: una topología a la vez (comparten nombres de servicio).
 # Uso (como root o con sudo, porque carga reglas nftables):
 #   scripts/lab.sh plana           levanta la topología plana (sin reglas)
-#   scripts/lab.sh segmentada      carga lab/nftables/netseg.nft y levanta la segmentada
+#   scripts/lab.sh segmentada      carga lab/nftables/netseg.nft, levanta wg0 (scripts/wg0.sh) y la segmentada
 #   scripts/lab.sh nft-quitar      descarga la tabla netseg (la segmentada queda solo con las reglas de Docker)
 #   scripts/lab.sh nft-cargar      vuelve a cargar la tabla netseg
 #   scripts/lab.sh apagar          baja ambas topologías y descarga netseg
@@ -16,6 +16,10 @@ SUDO=""; [[ $EUID -ne 0 ]] && SUDO="sudo"
 bajar() { docker compose -f "$LAB/compose.$1.yml" down --remove-orphans -t 2 >/dev/null 2>&1 || true; }
 nft_cargar() { $SUDO nft -f "$LAB/nftables/netseg.nft"; echo "nftables: tabla inet netseg cargada"; }
 nft_quitar() { $SUDO nft delete table inet netseg 2>/dev/null && echo "nftables: tabla inet netseg descargada" || true; }
+
+# Construye las imágenes con la política descargada: el build sale a internet por docker0 y netseg
+# (con su política drop) lo bloquea. Es rápido si no cambió nada (caché).
+construir() { nft_quitar; docker compose -f "$LAB/compose.$1.yml" build; }
 
 # Volúmenes externos y persistentes: el modelo de Ollama y la CA interna de Caddy.
 # Compose nunca los borra (no usar `down -v`: el modelo pesa ~2 GB y la CA firma los certificados).
@@ -65,20 +69,24 @@ esperar() {
 
 case "${1:-}" in
   plana)
-    bajar segmentada; nft_quitar; volumenes
+    bajar segmentada; "$RAIZ/scripts/wg0.sh" abajo; nft_quitar; volumenes
     docker compose -f "$LAB/compose.plana.yml" up -d --build
     esperar ;;
   segmentada)
     bajar plana; volumenes; mkdir -p "$LAB/ca"
+    construir segmentada
     nft_cargar                     # primero la política: la red nace ya filtrada
+    "$RAIZ/scripts/wg0.sh" servidor   # wg0 y su excepción en Docker (DOCKER-USER) antes que la topología
     docker compose -f "$LAB/compose.segmentada.yml" up -d --build
     esperar
-    exportar_ca ;;
+    exportar_ca
+    "$RAIZ/scripts/wg0.sh" cliente ;;
   nft-cargar) nft_cargar ;;
   nft-quitar) nft_quitar ;;
-  apagar)     bajar plana; bajar segmentada; nft_quitar ;;
+  apagar)     bajar plana; bajar segmentada; "$RAIZ/scripts/wg0.sh" abajo; nft_quitar ;;
   estado)
     docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Networks}}'
-    $SUDO nft list tables ;;
+    $SUDO nft list tables
+    "$RAIZ/scripts/wg0.sh" estado ;;
   *) sed -n '2,10p' "${BASH_SOURCE[0]}"; exit 2 ;;
 esac

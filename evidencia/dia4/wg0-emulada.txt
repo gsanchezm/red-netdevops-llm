@@ -1,0 +1,71 @@
+# VPN emulada · wg0 · 2026-10-24 19:34:25 -0600
+
+## Host (servidor wg0, 10.10.50.1/24, UDP 51820)
+interface: wg0
+  public key: rzYzBT…
+  private key: (hidden)
+  listening port: 51820
+
+peer: PX6gZs…
+  endpoint: 203.0.113.10:59277
+  allowed ips: 10.10.50.2/32
+  latest handshake: 1 minute, 9 seconds ago
+  transfer: 11.51 KiB received, 13.92 KiB sent
+209: wg0: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+wireguard addrgenmode none numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535 tso_max_size 524280 tso_max_segs 65535 gro_max_size 65536 
+
+## cliente-remoto (203.0.113.10, túnel 10.10.50.2; enruta 10.10.0.0/16 por wg0)
+interface: wg0
+  public key: PX6gZs…
+  private key: (hidden)
+  listening port: 59277
+
+peer: rzYzBT…
+  endpoint: 203.0.113.1:51820
+  allowed ips: 10.10.0.0/16
+  latest handshake: 1 minute, 9 seconds ago
+  transfer: 13.92 KiB received, 11.51 KiB sent
+  persistent keepalive: every 25 seconds
+  10.10.0.0/16 dev wg0 scope link 
+  10.10.50.0/24 dev wg0 proto kernel scope link src 10.10.50.2 
+  203.0.113.0/24 dev eth0 proto kernel scope link src 203.0.113.10 
+
+## Latencia ICMP: 50 pings
+Por el túnel (cliente -> 10.10.50.1):
+50 packets transmitted, 50 received, 0% packet loss, time 9989ms
+rtt min/avg/max/mdev = 0.335/0.556/1.258/0.221 ms
+Sin túnel (cliente -> 203.0.113.1, mismo host por br-inet):
+50 packets transmitted, 50 received, 0% packet loss, time 9995ms
+rtt min/avg/max/mdev = 0.059/0.088/0.294/0.041 ms
+
+## HTTPS a Caddy por la IP real, por el túnel, con la CA interna (5 solicitudes a /api/tags)
+HTTP 200  TCP 0.000743s  TLS 0.004788s  total 0.009122s
+HTTP 200  TCP 0.000614s  TLS 0.004658s  total 0.007490s
+HTTP 200  TCP 0.000649s  TLS 0.004642s  total 0.007665s
+HTTP 200  TCP 0.000507s  TLS 0.004912s  total 0.008365s
+HTTP 200  TCP 0.000677s  TLS 0.004523s  total 0.007593s
+
+## Certificado que presenta Caddy en 10.10.10.5:443 (el cliente no envía SNI para una IP)
+  subject=
+  issuer=CN=Caddy Local Authority - ECC Intermediate
+  X509v3 Subject Alternative Name: critical
+      IP Address:10.10.10.5
+
+## Lo que la VPN no alcanza (nc -zv -w 2 desde cliente-remoto, por el túnel)
+  Ollama           10.10.20.10:11434 -> connect to 10.10.20.10 port 11434 (tcp) timed out: Operation in progress
+  proyecto1        10.10.10.11:8080 -> connect to 10.10.10.11 port 8080 (tcp) timed out: Operation in progress
+  colector         10.10.99.30:9100 -> connect to 10.10.99.30 port 9100 (tcp) timed out: Operation in progress
+  iot-sensor       10.10.30.10:1883 -> connect to 10.10.30.10 port 1883 (tcp) timed out: Operation in progress
+  Caddy (pata IA)  10.10.20.5:443 -> connect to 10.10.20.5 port 443 (tcp) timed out: Operation in progress
+
+## Contadores de netseg (forward)
+  iifname "wg0" oifname "br-trabajo" ip daddr 10.10.10.5 tcp dport 443 counter packets 10 bytes 600 accept comment "VPN emulada -> Caddy :443"
+  counter packets 30 bytes 1800 drop comment "denegación por defecto"
+## Excepción en Docker (DOCKER-USER y raw)
+  -A DOCKER-USER -d 10.10.10.5/32 -i wg0 -o br-trabajo -p tcp -m tcp --dport 443 -j ACCEPT
+  -A PREROUTING -d 10.10.10.13/32 -i wg0 -j ACCEPT
+  -A PREROUTING -d 10.10.10.12/32 -i wg0 -j ACCEPT
+  -A PREROUTING -d 10.10.10.15/32 -i wg0 -j ACCEPT
+  -A PREROUTING -d 10.10.10.5/32 -i wg0 -j ACCEPT
+  -A PREROUTING -d 10.10.10.11/32 -i wg0 -j ACCEPT
+  -A PREROUTING -d 10.10.10.14/32 -i wg0 -j ACCEPT
