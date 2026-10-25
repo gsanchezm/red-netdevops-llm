@@ -43,7 +43,7 @@ $filas = foreach ($par in $Destino) {
 }
 
 $texto = @(
-    "# regiones.txt - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    "# regiones.txt - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz')"
     "Latencia ICMP desde esta PC (cableada) a droplets de prueba; $Pings pings por región. Jitter = desviación estándar."
     "Se elige la región con menor promedio y jitter, y pérdida de 0 %."
     ''

@@ -1,0 +1,27 @@
+# regiones.txt - 2026-10-24 18:01:15 -06:00
+Latencia ICMP desde esta PC (cableada) a droplets de prueba; 50 pings por región. Jitter = desviación estándar.
+Se elige la región con menor promedio y jitter, y pérdida de 0 %.
+Generado con `scripts/ping-regiones.ps1`; las IP de los droplets se ocultan (el repositorio es público).
+
+
+Region IP          Promedio Min   Max   Jitter Perdida
+------ --          -------- ---   ---   ------ -------
+nyc3   45.55.x.x   69.9 ms  68 ms 74 ms 1.1 ms 0 %
+tor1   165.245.x.x 72.6 ms  70 ms 86 ms 2.8 ms 0 %
+sfo3   143.110.x.x 78.2 ms  76 ms 82 ms 1.3 ms 0 %
+
+## Conclusión
+
+Región elegida para el concentrador WireGuard: **nyc3 (Nueva York)**.
+
+- Gana en promedio (69.9 ms), en jitter (1.1 ms) y en peor caso (74 ms), con 0 % de pérdida.
+- Frente a tor1 la diferencia es de 2.7 ms en promedio, pero tor1 tuvo el jitter más alto (2.8 ms)
+  y un pico de 86 ms; sfo3 es 8.3 ms más lenta que nyc3, aunque estable (jitter 1.3 ms).
+- Las tres quedan entre 70 y 78 ms de ida y vuelta: la diferencia entre ellas es pequeña. Lo que
+  importa para el proyecto es que una petición del celular que pase por el droplet paga ≈ 70 ms
+  de ida y vuelta del tramo droplet ↔ casa, además de su tramo celular ↔ droplet, sobre los
+  ≈ 35 ms hasta el primer token que se midieron dentro del laboratorio (`evidencia/dia3/`).
+- DigitalOcean no tiene centros de datos en México ni en Texas (ver
+  `docs/guia-droplet-digitalocean.md`); `atl1` no se probó.
+- Limitación: se mide desde casa. La latencia del celular al droplet por datos móviles depende de su
+  operador y de dónde esté, y se medirá en el Día 4 con el túnel `wg1` funcionando.
