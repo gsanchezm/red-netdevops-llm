@@ -1,0 +1,30 @@
+
+session_id: local-ffef1f63bcbb86480fa354eb52fe8b7340ba86e88cb95386df010c5e9f10a270
+Al revisar `politica-cargada.nft` contra `matriz-de-flujos.md`:
+
+## Hallazgos críticos
+
+**Sí hay reglas que permiten flujos denegados:**
+
+1. **Caddy → Internet**: La regla `iifname "br-trabajo" oifname "eth0"` permite tráfico de Caddy al internet, pero la matriz dice explícitamente **"Caddy hacia internet - DENEGADO"**
+
+2. **Política default**: La cadena usa `policy accept;` (no `drop`), lo que amplía desvíos
+
+---
+
+## Propuesta de corrección
+
+Eliminar las reglas del segmento br-trabajo para salida a eth0:
+
+```bash
+# Regla Caddy → internet (eliminar/permitir denegar)
+iifname "br-trabajo" oifname "eth0" counter packets 0 bytes 0 accept comment "Trabajo -> internet"
+
+# O alternativamente, cambiar policy default de accept a drop si se desea cierre estricto
+policy accept; → policy drop;
+```
+
+---
+
+VEREDICTO: DESVIO  
+REGLA: iifname "br-trabajo" oifname "eth0" counter packets 0 bytes 0 accept comment "Trabajo -> internet"

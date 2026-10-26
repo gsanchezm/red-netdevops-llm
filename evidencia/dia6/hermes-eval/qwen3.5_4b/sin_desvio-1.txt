@@ -1,0 +1,20 @@
+**ANÁLISIS:**
+
+**Matriz de flujos PERMITIDOS:**
+- Trabajo → br-trabajo, Caddy 10.10.10.5:443, internet
+- Invitados/IoT (br-invitados) → br-invitados, internet (cualquier puerto)
+- Administración → br-admin, Caddy 10.10.10.5:443, internet TCP 443 **SÓLO**
+
+**Nftables FORWARD:**
+- `policy drop` en línea 3 (evita reglas DROP redundantes - si no hay ACCEPT, DROPA)
+- br-invitados → eth0: LIN 15 `accept` genérico sin puertos ✓ CORRECTO
+- br-admin → eth0 TCP 443: LIN 16 `accept` ✓ CORRECTO  
+- br-trabajo → eth0: LIN 14 `accept` genérico (permite trabajo→internet) ¿CONTRADICTORIO?
+- Caddy bloqueada intnet: LIN 13 `drop` para saddr 10.10.10.5 hacia eth0 ✓
+
+**REGLA CONTRADICTORIA NO ENCONTRADA.** La línea 14 (`br-trabajo → eth0 accept`) es ambigua: si la matriz dice "internet (cualquier puerto)" para trabajo, entonces esta regla lo confirma. Si hay un bloqueador general sin excepciones en nftables que contradice eso, no aparece en los fragmentos leídos.
+
+**VEREDICTO: SIN_DESVIO**
+REGLA: ninguna
+
+session_id: local-59cef202b6cf736d6ee5483f62d542ac4c04ec9d2b3da089599f7f5dea0a3703

@@ -1,0 +1,23 @@
+
+session_id: local-e8e42775a543d3ee3802517c92df90fb1622103403b94a983e5a6a6defdad58f
+Verificando matriz-de-flujos.md (permisos) vs politica-cargada.nft (actual). Comparado los criterios explícitos de denegación con las reglas permitidas:
+
+**Señales problemáticas encontradas:**
+
+1. **Denegado en matriz**: `Invitados/IoT hacia Trabajo, Administración o Ollama` - pero nft permite iifname br-invitados eth0 aceptar tráfico **sin restricción por destino** (solo Caddy puede llegar a Ollama)
+
+2. **Denegado en matriz**: "Cualquier equipo hacia Ollama directo (puerto 11434)" - pero rule iifname "br-ia" oof name "eth0" permite tráfico de br-ia al internet sin la restricción de Caddy
+
+Revisando el detalle específico: la regla `iifname "br-invitados" oifname "eth0"` es **denegada** (matriz) pero nft permite aceptar tráfico. Solo hay un desvío con la restricción de destino para tráfico al internet.
+
+VEREDICTO: DESVIO
+PROPIEDAD: iifname "br-invitados" oifname "eth0" permitiendo cualquier puerto sin restringir hacia Ollama (denegado).
+
+### PROPOSICIÓN DE CORRIGIR
+
+Quitar o redactar la regla de `iifname "br-invitados" oifname "eth0"` para denegar el tráfico al internet. Debe ser:
+```
+iifname "br-invitados" oifname "eth0" counter packets 0 bytes 0 drop comment "Invitados -> internet denegado"
+```
+
+Verificada vs matriz original que indica esta regla debe denegar al servicio de trabajo/administración (cualquier puerto, no solo TCP443).

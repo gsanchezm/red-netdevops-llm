@@ -1,0 +1,14 @@
+Análisis comparado de la política permitida (matriz-de-flujos.md) vs carga actual (politica-cargada.nft):
+
+**Fluxos permitidos en matriz:**
+- br-trabajo → su propio segmento, Caddy:10.10.20.5:443, internet (cualquier puerto)
+- br-admin → su propio segmento, Caddy:443, **solo TCP 443 a internet**
+- Invitados/IoT: su propio segmento, internet (cualquier puerto)
+
+**Conflict encontrado:**
+La regla permitida en la línea `iifname "br-invitados" oifname "eth0"` permite flujos de internet hacia cualquier destino desde br-invitados, pero el archivo matriz-de-flujos.md especifica explícitamente que Invitados/IoT no debe acceder a Trabajo, Administración ni Ollama. La política actual permite tráfico de origen Invitado (br-invitados) hacia internet sin limitaciones de destino específico, lo cual viola la restricción explicitamente del archivo matrix.
+
+VEREDICTO: DESVIO
+REGLA: iifname "br-invitados" oifname "eth0" accept
+
+session_id: local-08e0bfd55716808f9f0acb8cf0eb214d5a34117247ef7dd07ef16b6bcea34725

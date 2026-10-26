@@ -1,0 +1,23 @@
+Analice nftables forward chain contra matriz-de-fluxos.md:
+
+Reglas permitidas por docs:
+- br-invitados -> eth0 ✅ (internet cualquier puerto)
+- br-trabajo -> eth0 ✅ (internet cualquier puerto)
+- wg1 10.10.51.3 -> Caddy :443 ✅ (solo celular, solo port 443)
+- br-admin -> inet TCP 443 ✅
+
+Reglas problemáticas:
+```
+iifname "br-trabajo" ip saddr 10.10.10.5 oifname "eth0" counter packets 0 bytes 0 drop comment "Caddy no necesita salida a internet (D5)"
+```
+
+Esta regla DENA internet para Caddy, pero el documento dice **internet (cualquier puerto)** está permitido para br-trabajo. No es una violación de denegado — es un extra-restringimiento operativo válido.
+
+Sin embargo, verifico si hay ACCEPT que debe ser DROP:
+
+Revisando cada ACCEPT explícito... todos coinciden con la matriz permitida.
+
+VEREDICTO: SIN_DESVIO
+REGLA: ninguna
+
+session_id: local-4d454bda22e2ca36bdc423b8cc4524b4524669cd90ca631a1797149eeeea9570

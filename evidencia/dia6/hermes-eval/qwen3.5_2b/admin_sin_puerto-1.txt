@@ -1,0 +1,12 @@
+Matemáticamente hay una coincidencia directa con el diseño. Las conexiones permitidas por nftables desde br-admin son:
+- Br-trabajo → br-invitados (segundo acceptor en la misma rule)  
+- Br-trabajo → br-invitados (en regla 14, acepta cualquier origen br-trabajo)
+
+Esto crea una ruta de acceso a través del router objetivo 10.10.20.6 en lugar del segmento propio del admin. Pero la matriz es explícita para denegar tal flujo: "**Invitados/IoT hacia Trabajo, Administración o Ollama**."
+
+Hay un desvío porque existe ninguna regla específica que permita un flujo desde br-admin hacia br-invitados sin que sea una redirección por router destino en lugar de segmento propio.
+
+VerEDICTO: DESVIO  
+REGLA: ninguna
+
+session_id: local-4e83b96c492f3b3cc4848d19622ff1966f787612861a646c14c31a7306e49af1

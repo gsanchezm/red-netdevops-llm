@@ -1,0 +1,72 @@
+│ snapshots/actual/matrix-de-flujos.md
+│ @@ -0,0 +1,67 @@
+│ +# Matrix de Flujos - Políticas Denegadas
+│ +
+│ +## Denegados (nftables forward = drop rules only)
+│ +
+│ +### Reglas para bloquear ICMP:
+│ +1. Nginx proxy - DENIED_ICMP_REQUEST_NGINX
+│ +2. Rate limit 50psk/seg - RATE_LIMIT_50PSK
+│ +3. Brute force HTTP - BRUTE_FORCE_HTTP
+│ +4. SYN cookies attack - SYN_COOKIES_BLOCK
+│ +
+│ +### Reglas para bloquear DNS:
+│ +1. UDP 53 (DNS) rate limit - DNS_RATE_LIMIT_200ps
+│ +2. UDP 53 (DNS) amplification attack - DNS_AMPLIFICATION_BLOCK
+│ +3. DNS over HTTPS filtering - DNS_HTTPS_FILTER
+│ +
+│ +### Reglas para bloquear WebDPI:
+│ +1. High-CPU CPU-intensive apps - HIGH_CPU_DPI_APP
+│ +2. CPU-intensive video processing - HIGH_VIDEO_CPU_APP
+│ +3. Video calls (RTP) detection - VIDEO_CALL_RATE_LIMIT
+│ +
+│ +### Reglas para bloquear UDP Storms:
+│ +1. DNS UDP storm 1000/seg - UDP_STORM_1MPS
+│ +2. UDP echo attack 50/seg - UDP_ECHO_BLOCK
+│ +3. ICMP Flood 100/seg - ICMP_FLOOD_BLOCK
+│ +
+│ +### Reglas para bloquear TCP connections:
+│ +1. SSH brute force SYN - SSH_BRUTE_FORCE_SYN
+│ +2. FTP data transfer - FTP_DATA_TRANSFER_BLOCK
+│ +3. Telnet attack - TELNET_ATTACK_BLOCK
+│ +
+│ +### Bloqueos general:
+│ +1. All TCP with 500 bytes packet size - TCP_500_BYTES_BLOCK
+│ +2. UDP streams > 1Mbps - UDP_MBSBLOCK
+│ +3. IPv4 to IPv6 tunnel breakers - IPV6_TUNNEL_BREAKER
+│ +
+│ +## Denegados (nftables forward = drop rules only)
+│ +
+│ +### Reglas para bloquear ICMP:
+│ +1. Nginx proxy - DENIED_ICMP_REQUEST_NGINX
+│ +2. Rate limit 50psk/seg - RATE_LIMIT_50PSK
+│ +3. Brute force HTTP - BRUTE_FORCE_HTTP
+│ +4. SYN cookies attack - SYN_COOKIES_BLOCK
+│ +
+│ +### Reglas para bloquear DNS:
+│ +1. UDP 53 (DNS) rate limit - DNS_RATE_LIMIT_200ps
+│ +2. UDP 53 (DNS) amplification attack - DNS_AMPLIFICATION_BLOCK
+│ +3. DNS over HTTPS filtering - DNS_HTTPS_FILTER
+│ +
+│ +### Reglas para bloquear WebDPI:
+│ +1. High-CPU CPU-intensive apps - HIGH_CPU_DPI_APP
+│ +2. CPU-intensive video processing - HIGH_VIDEO_CPU_APP
+│ +3. Video calls (RTP) detection - VIDEO_CALL_RATE_LIMIT
+│ +
+│ +### Reglas para bloquear UDP Storms:
+│ +1. DNS UDP storm 1000/seg - UDP_STORM_1MPS
+│ +2. UDP echo attack 50/seg - UDP_ECHO_BLOCK
+│ +3. ICMP Flood 100/seg - ICMP_FLOOD_BLOCK
+│ +
+│ +### Reglas para bloquear TCP connections:
+│ +1. SSH brute force SYN - SSH_BRUTE_FORCE_SYN
+│ +2. FTP data transfer - FTP_DATA_TRANSFER_BLOCK
+│ +3. Telnet attack - TELNET_ATTACK_BLOCK
+│ +
+│ +### Bloqueos general:
+│ +1. All TCP with 500 bytes packet size - TCP_500_BYTES_BLOCK
+│ +2. UDP streams > 1Mbps - UDP_MBSBLOCK
+│ +3. IPv4 to IPv6 tunnel breakers - IPV6_TUNNEL_BREAKER
+I reached the iteration limit and couldn't generate a summary.
+
+session_id: local-6244c97ad5f825387099a4813b03c011f298c04676a1da7375893746889b1621

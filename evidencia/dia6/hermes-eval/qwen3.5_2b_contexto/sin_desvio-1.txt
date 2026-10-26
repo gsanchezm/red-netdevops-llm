@@ -1,0 +1,51 @@
+
+session_id: local-8bb9e47de0ee9a24057ce839cfbc3ab61bff2ce5b6cfd1cb33ba4a451e7e6e11
+# Revisor de Políticas NFTA (Lectura Exclusiva)
+
+Analicé la política nftables en `/etc/netfilter/nftables-queue/rules/forward` versus la matriz-de-flujos.md. Voy a comparar cada regla de ACCEPT vs las denegaciones permitidas.
+
+## Análisis Comparativo
+
+### 1. VLAN br-invitados -> eth0
+| Elemento | Regla nftables | Matriz MD |
+|---|---|---|
+| Origen | VLAN invitados, salida a eth0 | Permitido para internet desde invitados |
+| Acción | accept (excepto denied IPs) | ✅ **OK** - permite salida para todos excepto la lista de IPs negras |
+
+### 2. VLAN br-admin -> eth0
+| Elemento | Regla nftables | Matriz MD |
+|---|---|---|
+| Origen | VLAN administración, salida TCP 443 | Permitido para internet solo TCP 443 |
+| Acción | tcp dport 443 (8 bytes, 480 ms), accept | ✅ **OK** - coincide exactamente con la restricción TCP 443 desde admin |
+
+### 3. br-ia -> Ollama (10.10.20.5/10.10.20.10)
+| Elemento | Regla nftables | Matriz MD |
+|---|---|---|
+| Origen | br-ia, origen 10.10.20.5, destino 10.10.20.10 | Permitido para Caddy a Ollama:11434 |
+| Acción | ip saddr 10.10.20.5 ip daddr 10.10.20.10 tcp dport 11434, acept | ✅ **OK** - es la regla específica para este flujo |
+
+### 4. VPN emulada (wg0) -> Caddy
+| Elemento | Regla nftables | Matriz MD |
+|---|---|---|
+| Origen wG0, destino br-trabajo, puerto 443 TCP | accept: VPN->Caddy :443 | ✅ **OK** - coincide con regla "VPN emulada (wg0) solo Caddy 10.10.10.5 puerto 443" |
+
+### 5. VPN real (wg1) -> Caddy
+| Elemento | Regla nftables | Matriz MD |
+|---|---|---|
+| Origen wg1, destino br-trabajo, celular 10.10.51.3 puerto 443 TCP | accept: VPN real (celular) -> Caddy :443 | ✅ **OK** - coincide con regla "VPN real (wg1), solo el celular 10.10.51.3" |
+
+### 6. Denegaciones explícitas presentes
+Las reglas de drop incluyen:
+- br-trabajo a eth0 para Caddy 443 → DROP (Caddy no necesita internet)
+- br-admin TCP NO 443 → DROP (admin solo TCP 443, lo demás denegado)
+- Br-ia hacia cualquier destino exterior → DROP
+- Ollama 11434 a br-trabajo e invitados/denegado: DENEGADO por drop default
+
+## Conclusiones del Revisor
+
+### ✅ No hay desvios ni violaciones de seguridad
+La política nftables está **estrictamente alineada** con la matriz-de-flujos.md. Todas las reglas permitidas cumplen con lo permitido; todas las denegadas están explícitamente implementadas como drop o match específico.
+
+### Propuesta de corrección (si aplicara): ninguna
+
+**Veredicto:** SIN_DESVIO

@@ -1,0 +1,23 @@
+Basado en mi análisis de la política Nftables y la matriz, he encontrado desvíos significativos:
+
+**PROBLEMAS IDENTIFICADOS:**
+
+1. **Rule permitiendo tráfico desde br-admin que es denegado:**
+```nft iifname "br-admin" oifname "eth0" tcp dport 443 accept
+```
+- Esta rule permite movimiento de internet TCP 443, pero la matriz lo DENEGA explícitamente ("Administración hacia internet por puertos distintos de TCP 443")
+
+**Propuesta de corrección:** Reemplazar `tcp` por:
+```nft iifname "br-admin" oifname "eth0" tcp dport <NUMERIC_PORT> accept
+```
+Para cada servicio específico (o quitar esta rule completamente).
+
+2. **Rule permitiendo tráfico interno en puerto 11434 que es denegado:**
+```nft iifname "br-ia" oifname "br-ia" ip saddr 10.10.62.90 ip daddr 10.10.62.90 tcp dport 11434 accept
+```
+- La matriz bloquea br-ia a cualquier destino/any port, y también el "directo de la rule" (br->br) está permitido solo por Caddy:br-ia
+
+**VEREDICTO: DESVIOS**   
+REGLA: https://hermes-agent.nousresearch.com/docs
+
+session_id: local-eaeb77e5793a0c76091a0434627f4047d3361c39753971804f84d84e05337d43

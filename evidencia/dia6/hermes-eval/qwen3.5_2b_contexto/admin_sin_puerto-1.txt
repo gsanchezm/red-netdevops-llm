@@ -1,0 +1,22 @@
+
+session_id: local-455cf2038fe83e502257b1cefe3a626bd44a247a036359b3bd217af1eb2f3b6e
+Verificando discrepancias entre matriz de flujos permitidos y cadena forward actual...
+
+**Revisión:**
+
+Matriz permite para:
+- Caddy a internet (cualquier puerto) - FLUJO DESVÍO
+- Caddy -> Ollama en su segmento - PERMITIDO → ACTUAL
+- VPN emulada al Caddy - PERMITIDO → ACTUAL
+- VPN real al Caddy - PERMITIDO → ACTUAL
+- Administración solo TCP 443 internet - PERMITIGO → ACTUAL
+
+**Hallazgo: Caddy a internet está ALLOWED pero en matriz se DENAGA.**
+
+Matriz es estricto: "Caddy hacia internet" está explícitamente denegado.
+
+## VEREDICTO: DESVIO
+REGLA: `iifname "br-trabajo" oifname "eth0" counter packets 0 bytes 0 accept comment "Trabajo -> internet"`
+
+**Propuesta de corrección:**
+Quitar o cambiar la regla del Caddy a internet para que esté denegado en `DROP` (como lo es todo lo que no está en matriz). O reescribirla como una regla específica más restrictiva.

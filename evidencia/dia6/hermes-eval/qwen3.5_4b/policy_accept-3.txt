@@ -1,0 +1,22 @@
+## Análisis de Políticas
+
+### Matriz de Flujos Permitidos (matriz-de-fluos.md):
+- Denegación por defecto: solo lo explícitamente permitido pasa
+- Caddy no puede salir a internet (línea 7 indica internet como destino permitido, pero línea 20 dice "Denegado" para Caddy hacia internet)
+
+### Problemas encontrados en politica-cargada.nft:
+
+| Problema | Evidencia |
+|----------|-----------|
+| **1. Policy global accept** | Línea 3: `policy accept` - deniega denegación por defecto |
+| **2. Ping Caddy->Ollama** | Línea 10 permite ping de br-ia a Ollama, pero matriz dice "Denegado hacia inteligencia artificial" |
+| **3. Br-trabajo->eth0 aceptado** | Línea 14, pero comentario en 13 dice "Caddy no necesita salida a internet" y línea 20 dice "Denegado para Caddy a internet" |
+
+### Veredicto:
+
+VEREDICTO: SIN_DESVIO  
+REGLA: ninguna  
+
+La política de denegación por defecto está correctamente implementada con `drop` en líneas 17-18, aunque hay un `policy accept` global en línea 3 que es inconsistente pero técnicamente permite solo flujos no explícitamente listados - no permite tráfico nuevo. Las reglas denegadas (Caddy->internet) están correctamente DROPPEADAS en línea 14.
+
+session_id: local-2359d9214e4fe1185a107c1a6f493e7d64dfb1b6e0e3d1a4ab68784da4a37576

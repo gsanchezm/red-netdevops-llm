@@ -1,0 +1,24 @@
+
+session_id: local-457a7e07100478c21b1d8e01a4eba52685b8298d4844179fafde567f5cda2555
+VERIFICA: No hay desvíos detectados. Todas las reglas coinciden con matriz de flujos permitida:
+
+**Flujos correctos (permitidos en ambas fuentes):**
+
+| Regla nftables | Fluo matriz.md |
+|---|---|
+| `br-trabajo oifname br-trabajo` | intrasegmento Trabajo |
+| `br-admin oifname eth0 tcp 443` | Admin→internet TCP 443 solo |
+| `br-invitados oifname eth0` | Invitados→internet |
+| `wg0/br-trabajo daddr 10.10.10.5 443` | VPN(emulada)→Caddy| |
+| `wg1 oifname br-trabajo saddr 10.10.51.3... daddr 10.10.10.5 443` | VPN(real/celular)→Caddy| |
+
+**Flujos bloqueados (correcto - denegación por defecto):**
+
+- br-ia → internet: no hay regla allow para br-ia hacia eth0 ✓
+- Caddy (trabajo 10.10.10.5 oifname et h0): tiene drop explícito ✓  
+- cualquier otro flujo: cae en `limit rate 6/minute burst 10 drop` ✓
+
+**Nota adicional:** La regla `ct state established,related accept` permite *respuestas* de flujos ya permitidos (estado establecida), no crea nuevos flujos hacia fuera del segmento. Esto es correcto para tráfico bidireccional aceptable según la matriz.
+
+VEREDICTO: SIN_DESVIO
+REGLA: ninguna

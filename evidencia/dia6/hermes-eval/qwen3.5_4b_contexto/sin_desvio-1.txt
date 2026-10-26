@@ -1,0 +1,5 @@
+VEREDICTO: SIN_DESVIO
+
+ninguna regla de politica-cargada.nft permite un flujo que matriz-de-flunos.md deniega. Todas las reglas ACCEPT están alineadas con la matriz de permisos, y queda una regla final DROP para denegar por defecto todo lo no expreso anteriormente.
+
+session_id: local-b48eab8a968d49e6ad8411607e3e6ac008494c8035858641d5486e9612ee5918

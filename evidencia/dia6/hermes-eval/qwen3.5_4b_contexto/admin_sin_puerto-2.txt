@@ -1,0 +1,16 @@
+
+session_id: local-ca17c05fcafdc53e2048fd5a4e7565ef793abfaac32cc29e49e358ef4c0b5bee
+Comparando ambas fuentes...
+
+**REGLA PROBLEMÁTICA 1:** (br-ia hacia red local) en politica-cargada.nft permite Caddy (10.10.20.5) ping a Ollama (10.10.20.10) ICMP, pero matiz que dice "(mediciones)". Según matriz, br-ia está DENEGADO hacia cualquier otro destino y hacia internet. Este rule permite flujo IaaS → br-trabajo.
+
+**REGLA PROBLEMÁTICA 2:** (br-ia intra-segmento) en politica-cargada.nft la regla `iifname "br-ia" oifname "br-ia"` acepta todo tráfijo br-ia con política accept por defecto. Document dice "El segmento de IA (br-ia) hacia cualquier otro destino... DENEGADO".
+
+**REGLA PROBLEMÁTICA 3:** "Caddy no necesita salida a internet" permite br-trabajo → eth0, pero documenta "Caddy no llega a internet". Solo internet vía Caddy:443 está permitido. Esta regla es inconsistente.
+
+---
+
+VEREDICTO: DESVIO
+REGLA: iifname "br-ia" oifname "br-trabajo" ip daddr 10.10.10.5 tcp dport 443 counter packets 0 bytes 0 accept comment "VPN emulada -> Caddy :443"
+
+Propuesta de corrección: Reemplazar las reglas de br-ia en forward con regla drop (br-ia se debe denegar todo tráfico). La regla `iifname "br-ia"` necesita una política deny explícita.

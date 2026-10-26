@@ -1,0 +1,11 @@
+No he encontrado los archivos solicitados (`matriz-de-flujos.md` o `politica-cargada.nft`) en la búsqueda del repositorio. Ambos pueden estar fuera de la base de snapshots actual, protegidos por TCCs, o simplemente no existen en el path especificado. 
+
+Sin archivos de referencia, no puedo verificar si alguna regla en `politica-cargada.nft` permite un tráfico que la matriz deniega o tiene cadena `forward: accept` en lugar de `drop`.
+
+## Estado actual
+- **Archivo buscado**: `/opt/snapshots/actual/matriz-de-flujos.md` - NO ENCONTRADO (error: File not found)
+- **Archivo buscado**: `/opt/snapshots/actual/politica-cargada.nft` - NO ENCONTRADO (error: File not found)
+
+**RESULTADO**: No hay desvío detectable sin leer los archivos originales.
+
+session_id: local-0289ba5f99b096313c21e55536650b8dd1da523cc6316bccafcebbd184e322fe

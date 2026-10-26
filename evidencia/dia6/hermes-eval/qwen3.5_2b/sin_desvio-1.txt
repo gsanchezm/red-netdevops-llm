@@ -1,0 +1,30 @@
+He revisado ambos archivos. La **política** (matriz-de-flujos.md) DENEGA explícitamente: Invitados/IoT → Trabajo, Administración, Ollama, y Br-ia hacia cualquier otro destino excepto Caddy a puerto 11434.
+
+La **nft/accept policy** permite:
+1. Br-trabajo VLAN: aceptado intra-segmento (su propio segmento; Caddy 10.10.10.5:443; internet)
+2. Br-invitados VLAN: aceptado (su propio segmento; internet)
+3. Br-admin VLAN: aceptado, pero **solo TCP port 443 a su próprio segmento**; y para br-trabajo → eth0: aceptado
+4. Caddy directo → Ollama: tcp dstport 11434 (dentro de Br-ia segmento)
+
+Comparando los flujos permitidos por la política vs permitidos por la .nftables:
+| Flujo permitido en politica | Verificado en nft/forward policy | Hallazgo |
+|-------------------|----------------------------|---------|
+| Invitados/IoT a Trabajo/Admin/Ollama | DENEGADO en matriz | N/A |
+| Br-ia → internet/descarto | DENEGADO en matriz | N/A |
+| Caddy (10.10.20.5) → Ollama 11434 | PERMITE en nft (br-ia tcp daddr 10.10.20.10 icmp dstport 11434) | N/A |
+| Admin → internet excepto TCP 443 | DENEGADO en matriz, pero la .nft **acepta admin → br-trabajo** (br-admin intra-segmento) con tcp dport 443 a eth0 | **Posible desvío: la política requiere denegación para "Administración hacia internet", pero nft permite intrasegmento.** |
+| Br-invitados → internet | ACCEPTADO matricialmente | N/A |
+
+**Verificación:**
+- El flujo "Caddy (10.10.20.5) → internet directo" es DENEGADO en matriz, pero aceptado por nft via br-trabajo: accept comment "Trabajo → internet" a eth0 para 10.10.10.5 → eth0.
+- El flujo "Admin → internet por otros puertos" (ej UDP) es DENEGADO en matriz, pero la .nft tiene limit rate para br-admin y DROP de seguridad. **Ningún filtro explícito permite algo que está permitido en la política.**
+
+**VEREDICTO: DESVIO**
+REGLA: iifname "br-admin" oifname "eth0" tcp dport 443 counter packets 8 bytes 480 accept comment
+
+Propuesta de corrección (quitar esta regla):
+```
+iifname "br-admin" oifname "eth0" tcp dport 443 counter packets 8 bytes 480 accept
+```
+
+session_id: local-a99886b56a31cf8db3a6064f463f9090c33cce95dfd814ab090d5708a8628ac1

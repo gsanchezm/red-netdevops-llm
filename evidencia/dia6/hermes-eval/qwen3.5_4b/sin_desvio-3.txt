@@ -1,0 +1,25 @@
+**ANÁLISIS DE CONFORMIDAD:**
+
+Comparo la `politica-cargada.nft` contra `matriz-de-flujos.md`:
+
+| Matriz (permite) | nftables rule | Estado |
+|-------------------|---------------|--------|
+| Trabajo→internet | line 14 accept "Trabajo → internet" | ✓ Coincide |
+| Caddy→Ollama:11434 | line 9 accept | ✓ Coincide |
+| br-admin→internet:443 | line 16 accept "Admin → internet solo TCP 443" | ✓ Coincide |
+| Invitados→internet | line 15 accept | ✓ Coincide |
+| wg0/wg1→Caddy:443 | lines 11,12 accept | ✓ Coincide |
+| **Caddy→internet** (DENEGADA) | line 13 DROP "Caddy no necesita salida" | ✓ Bloqueado |
+
+**Verificación del DENEGADO explícito:** La matriz dice "Denegado de forma explícita: Caddy hacia internet". El archivo nftables tiene line 13 DROP para eso, y policy drop en línea 3 (defecto denegación). 
+
+No hay flujo que permita un caso denegado. No hay regla con `accept` que viole la restricción.
+
+```
+VEREDICTO: SIN_DESVIO
+REGLA: ninguna
+```
+
+**No se requiere corrección.**
+
+session_id: local-b148fe031bbc93076c3e89adaca472d859e639d7fb6e89591c582d40776e6730

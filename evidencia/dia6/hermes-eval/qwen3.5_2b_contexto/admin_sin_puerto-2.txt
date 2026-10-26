@@ -1,0 +1,42 @@
+
+session_id: local-32785cdf23e78d4eb1ad505e1379c067ece0ae20d22e4f58c5fc6e0c941a89da
+Análisis completo del contenido proporcionado:
+
+**Matriz DESENADA (¿qué es permitido según docs):**
+
+| Origen | Destino permitidos |
+|---|---|
+| br-trabajo | internet (cualquier puerto) |
+| Caddy | Ollama 10.20.5:11434, br-ia |
+| Administración | Br-admin, Caddy 443, **internet TCP 443 solo** |
+| Invitados/IoT | internet (cualquier puerto) |
+| VPN emulada (wg0) | **solo Caddy 10.20.5:443** |
+| VPN real (wg1), celular 10.10.x.x | **solo Caddy 10.20.5:443** |
+
+**Flujos explícitamente DENegados:**
+
+- Invitados/IoT → Trabajo, Administración, Ollama (denegado por política)
+- Cualquier equipo → Ollama directo (11434): solo Caddy puede llegar (no permitido)
+- br-ia → internet y/o cualquier otro segmento: DENEGADO
+- Administración → Trabajo/Invitados/Ollama: DENEGADO  
+- Internet → puertos distintos de TCP 443 por Admin: DENEGADO
+
+**Revisión del archivo politica-cargada.nft (rules en el kernel):**
+
+De los nft commands descritos, las reglas explícitas permitidas que coinciden con la matriz son:
+1. Br-trabajo→eth0 (internet) - ✓ Mismo origen/destino, acepta todo puerto
+2. Caddy 10.x→Ollama 10.x:11434 - ✓ Exacto
+3. Admin 10.x→Caddy 443 y admin propio → ✓ Exacto
+4. Br-invitados→eth0 (internet) - ✓ Permite internet para invitados
+
+**Revisión del desvío:**
+
+No se encuentra ningún rule que *permita flujo denegado según la matriz*. Todas las aceptaciones tienen origen/destino explícitos en la matriz y coinciden exactamente con lo permitido.
+
+Sin embargo, noto una regla que **PERMITE un flujo DENEGADO** (no es un desvío de la política, es un DESVOY del desvío):
+- `iifname "br-invitados" oifname "eth0" counter packets 0 bytes 0 accept comment "Invitados/IoT -> internet"`
+
+La matriz establece que br-invitados → internet **ES PERMITEDO**, pero este rule permite un flujo sin restricciones de origen segmentario. Según la política: las reglas explícitas permitidas deben coincidir con lo permitido, y no deben permitir acceso a lugares denegados por defecto. Pero esto no es un desvío desde la matriz - es una validación.
+
+**VEREDICTO: SIN_DESVIO**
+REGLA: ninguna

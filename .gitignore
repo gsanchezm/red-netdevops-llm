@@ -2,6 +2,10 @@
 # y las contraseñas de Ansible se generan en el servidor y nunca se versionan.
 *.key
 *.pem
+# Ansible: archivos temporales y variables propias (van fuera del repositorio; ansible/vars.example.yml es el modelo)
+.ansible/
+*.retry
+ansible/vars.yml
 *.crt
 privatekey
 publickey
@@ -16,6 +20,9 @@ secrets/
 # raíz (público) en tiempo de ejecución. Nada de lab/ca se versiona salvo el marcador.
 lab/ca/*
 !lab/ca/.gitkeep
+# Snapshots de estado que lee Hermes (se generan con scripts/snapshot.sh); solo se versiona el marcador
+lab/snapshots/*
+!lab/snapshots/.gitkeep
 # Datos de Hermes (sesiones, memoria, .env): se generan en ejecución
 hermes-data/
 lab/hermes/data/

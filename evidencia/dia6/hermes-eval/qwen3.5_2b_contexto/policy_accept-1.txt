@@ -1,0 +1,55 @@
+
+session_id: local-94312391e64080895b29b5d8f90924aa72b75b45e9759345ac8e45558995daa4
+Analizando el audit de políticas. Voy a comparar la configuración actual contra lo permitido por matriz-de-flujos.md.
+
+---
+
+## COMPARISÓN DE REGLAS (matrix vs policy-cargada)
+
+| Origen | Destino permitido según matrix | En policy-cargada? | Estado |
+|---|---|---|---|
+| br-trabajo (0x0.02/3) -> oifname eth0 | Permitido | **DENEGADO** por `drop "Caddy no necesita salida a internet"` | ❌ Desvío potencial |
+| br-invitados -> oifname eth0 | Permitido | No se ve con esa regla específica | Aceptado (por general) |
+| wg1 (celular) -> Caddy | Permite VPN real (wc1, 10.51.3 -> 10.10.10.5:443) | Permitido correctamente | ✅ Correcto |
+
+---
+
+## REVISIÓN DETALLADA
+
+### Regla críptica de BR-TRABAJAO que está desviada:
+```nft
+iifname "br-trabajo" oifname "eth0" counter packets 0 bytes 0 accept comment "Trabajo -> internet"
+```
+
+**Esto es DENEGADO** por la regla `limit rate 6/minute burst 10 packets log prefix "netseg-drop: "` justo antes. **El orden está equivocado** (se debe ser `drop` primero).
+
+### Revisión del firewall NAT y ARP:
+La política actual permite br-trabajo -> eth0 como aceptado pero **no tiene restricción de destino**. Esto permitiría tráfico que la matriz DEBIE denegar hacia otras direcciones.
+
+### Revisión de Ollama (br-ia):
+La única reglas permitida para br-ia es específicamente br-ia->10.10.20.10:11434, **no hay regla "permitir todo"**. Este diseño está correcto por ahora si no hay tráfico accidental o ICMP mal controlado.
+
+---
+
+## PROPUESTA DE CORRECCIÓN
+
+Si el firewall tiene la política correcta y solo se desvió al permitir br-trabajo->eth0, aquí está la corrección:
+
+**Regla a quitar/badging:**
+```nft
+# Quitar esta regla o moverla: (actualmente en el límite rate)
+limit rate 6/minute burst 10 packets log prefix "netseg-drop: " level info
+
+# Añade:
+iifname "br-trabajo" oifname "eth0" counter packets 0 bytes 0 drop comment "Desvío Caddy -> internet"
+```
+
+**O simplemente:** mover esta regla de límite a `policy=drop` en la raíz `forward`.
+
+---
+
+## VEREDICTO: DESVIO
+
+REGLA: **iifname "br-trabajo" oifname "eth0" counter packets 0 bytes 0 accept comment "Trabajo -> internet"**
+
+**CORRECCIÓN:** Quedar esta regla con `policy=drop` en la raíz `forward`.

@@ -1,0 +1,3 @@
+
+session_id: local-6b78f66103ccc025cc766b52e9a478586801960b9840b6e47d94c695cc4a8102
+Los archivos `/opt/hermes/snapshots/actual/matriz-de-flujos.md` y `politica-cargada.nft` no existen. La carpeta `/opt/hermes/snapshots/actual` no ha sido encontrada en el sistema de archivos.

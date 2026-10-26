@@ -1,0 +1,30 @@
+
+session_id: local-cb1b6ffc84b8a0d18eb4ac835d0c94d1d7ad66e9a9db78cda74b81307596c41b
+Basado en el análisis completo del contenido proporcionado:
+
+## Análisis
+
+Comprobando contra **matriz-de-flujos.md**, la cadena `forward` tiene estas reglas relevantes y políticas permitidas vs denegadas:
+
+### Reglas correctas (permiten lo permitido):
+- `iifname "br-trabajo" oifname "br-trabajo"` ✓ intra-segmento
+- `iifname "br-invitados" oifname "br-invitados"` ✓ intra-segmento
+- `iifname "br-admin" oifname "br-admin"` ✓ intra-segmento
+- `iifname "br-ia" ... Caddy -> Ollama :11434` ✓ permitido explícitamente
+- `iifname "wg0/wg1" ... tcp dport 443` ✓ permitido
+- `iifname "br-admin" oifname "eth0" tcp dport 443` ✓ admin → internet TCP 443
+
+### **REGLA PROBLEMÁTICA encontrada:**
+
+```text
+lmit rate 6/minute burst 10 packets log prefix "netseq-drop: " level info
+iifname "br-invitados" oifname "br-trabajo" counter packets 0 bytes 0 accept
+counter packets 0 bytes 0 drop comment "denegación por defecto"
+```
+
+La regla `accept` entre `iifname "br-invitados"` y `oifname "br-trabajo"` permite tráfico **de Invitados/IoT hacia Trabajo**, lo cual está explícitamente **DENEGADO** en la matriz ("Invitados/IoT hacia Trabajo, Administración o Ollama" = denegado de forma explícita).
+
+---
+
+VEREDICTO: DESVIO     
+REGLA: iifname "br-invitados" oifname "br-trabajo" counter packets 0 bytes 0 accept

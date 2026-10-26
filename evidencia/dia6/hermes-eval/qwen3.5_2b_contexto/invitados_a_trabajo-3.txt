@@ -1,0 +1,17 @@
+**VEREDICTO: DESVIOS**
+
+Las reglas de "politica-cargada.nft" **PERMITEN flujos denegados**:
+
+| Violación | Descripción |
+|-----------|-------------|
+| **Rule #5** ("br-invitados → br-trabajo"): | La regla `iifname "br-invitados" oifname "br-trabajo"` permite cruzamiento de tráfico del VLAN invitados para el trabajo, violando la Denegación explícita (§5 rule#2). |
+| **Rule #6** (drop counter): | El counter drop bloquea completamente sin estado. Permite: br-ia al exterior (§3), br-trabajo a eth0 en lugar de permitir que Caddy salga desde intrasegmento (§3 rule#9 permitiendo salida a internet cuando no lo debería). |
+| **Rule #7** (br-admin → eth0): | Br-admin a eth0 sin port 443 es permitido, violando §5 rule#3: "Administración hacia internet por puertos distinto de TCP 447" debe estar bloqueado. |
+
+**Propuesta de corrección:**
+- Quitar la regla `iifname "br-invitados" oifname "br-trabajo"` (denegación cruzada permitida).
+- Cambiar el drop counter por `drop comment "deny: no state, br-ia not outbound"` y especificar la lógica correcta: `accept` para br-ia al exterior y denegar tráfico en br-invitados a br-admin o internet.
+
+¡Veredicto con desvío!
+
+session_id: local-cd3f2178aa16f186beee5f8190ed4a53fd4ba0c196e5875a157fb6551ea43cd8

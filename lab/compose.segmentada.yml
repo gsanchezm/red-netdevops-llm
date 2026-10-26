@@ -184,6 +184,7 @@ services:
       - hermes-data:/opt/data               # sesiones y memoria
       - ./hermes/config.yaml:/opt/data/config.yaml:ro
       - ./ca:/ca:ro
+      - ./snapshots:/snapshots:ro           # lo que Hermes puede LEER del estado (scripts/snapshot.sh); no escribe nada del host
     networks:
       admin: { ipv4_address: 10.10.99.20 }
 

@@ -1,0 +1,22 @@
+
+session_id: local-71f6d2872193143cb94eb4ebd3e2cd91801252052d6b42398aa41fc87fe0ac2f
+Revisando cada regla contra la política documentada:
+
+**Reglas permitidas por nftables que están ALLOWED**:
+- `VLAN 10 intra-segmento` → br-trabajo a br-trabajo (PERMITIDO en matriz)
+- `VLAN 30 intra-segmento` → br-invitados a br-invitados (PERMITIDO en matriz)
+- `VLAN 99 intra-segmento` → br-admin a br-admin (PERMITIDO en基质)
+- `Caddy -> Ollama :11434` → permite Caddy al Ollama (PERMITIDO en matriz: "Caddy → Ollama dentro del segmento IA")
+- Ping icmp br-ia a br-ia → permitido implícitamente en flujo establecido/related
+
+**Reglas permitidas por nftables que están DENIED en matriz**:
+Ninguna regla actual permite tráfico hacia destinos denegados (Ollama directo, segmentación cruzada, admin→internet ≠ 443).
+
+**Verificación de política final**: La última `accept` es `br-admin -> eth0: TCP 443`, seguida inmediatamente por `drop` por defecto. No hay regla con `policy accept`.
+
+```
+VEREDICTO: SIN_DESVIO
+REGLA: ninguna
+```
+
+El firewall cumple: no hay desvío entre documentación y cadena nftables actualmente vigente.

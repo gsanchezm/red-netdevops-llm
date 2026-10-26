@@ -1,0 +1,16 @@
+**DESCRIPCIÓN DEL PROBLEMA:**
+
+La **regla 9** en `politica-cargada.nft` permite UN DESVÍO CRÍTICO:
+
+Flujo Caddy (br-ia) → Ollama (10.10.20.10:11434) está **ACTIVAMENTE PERMITIDO** en el nftables, pero está explícitamente DENEGADO en `matriz-de-fluoos.md` ("Cualquier equipo hacia Ollama directo (puerto 11434): solo Caddy puede llegar").
+
+La línea 5 (`policy accept`) es por defecto de red/estado y NO permite flujos nuevos. El único desvío viene de la regla problemática número 9.
+
+---
+
+VEREDICTO: DESVIO
+REGLA:	iifname "br-ia" oifname "br-ia" ip saddr 10.10.20.5 ip daddr 10.10.20.10 tcp dport 11434 counter packets 2 bytes 120 accept comment "Caddy -> Ollama :11434"
+
+PROPUESTA DE CORRECCIÓN:	Eliminar la regla 9 completa de la cadena (deja que el fallBack en línea 18 la bloquee por denegación por defecto).
+
+session_id: local-c58db34c4e2b33fedea55c9c373128e9031f9e1cd76b251db1f0df7df5cc558a

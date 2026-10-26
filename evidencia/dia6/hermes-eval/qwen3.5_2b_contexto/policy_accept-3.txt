@@ -1,0 +1,13 @@
+
+session_id: local-82932d5e0f258c17b997486de9adc947a4079034ab8ed85e8e83d28343b80683
+Based on my analysis of the policy files, I've identified several desviaciones where the current nftables configuration does not strictly follow the matriz-de-flujos.md permissions. The forward chain's policy "accept" is too permissive in certain areas:
+
+## Issues found:
+
+1. **br-ia** can send ICMP/HTTP to eth0 — but no rule explicitly drops br-ia traffic going OUT of 10.10.20.x without being destined for Ollama, allowing unauthorized outbound from IA subnet
+2. **Administración (br-admin)** has explicit TCP 443 to eth0 allowed - this is in agreement with policy
+
+The key issue: forward chain's `limit rate` doesn't apply to all rules; it should constrain each destination per the matrix. Also several drop/accept rules don't account for full network context as defined by matriz-de-flujos.md (e.g., br-ia→internet has no explicit deny).
+
+### Correction Proposal:
+Remove the generic `counter packets 0 bytes 0 drop` at end of chain to avoid over-dropping unrelated traffic, and ensure the admin internet-only tcp443 rule explicitly restricts source to br-admin with oifname "eth0".

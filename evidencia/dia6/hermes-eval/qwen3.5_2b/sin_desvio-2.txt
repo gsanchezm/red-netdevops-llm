@@ -1,0 +1,25 @@
+Comparando las dos archivos:
+
+**Matriz permite (señalados con "Denegado de forma explícita"):**
+- 16: Invitados/IoT → Trabajo/Admin/Ollama (denegado)
+- 17: Cualquier equipo → Ollama por D 11434 (denegado)  
+- 18: br-ia → cualquier destino/Internet (denegado)
+- 19: Administración → Trabajo/Invitados o Internet (puertos ≠ TCP 443) (denegado)
+- 20: Caddy → Internet (denegado)
+
+**Política nftables permite (con 'accept'):**
+- 6: `ct state established,related` - todas las aceptadas son ESTADOS ESTABLECIDO (no es tráfico arbitrario desde Invitados para Trabajo)
+- 9: br-ia → Ollama en TCP 11434 (IP origen Caddy 10.10.20.5 destino 10.10.20.10...) ✓ CORRECTO — es la única que permite tráfico al puerto específico que deniega matriz
+- 10: br-ia ping ICMP echo (solo br-ia, no cualquier destino) ✓
+- 11: wG0 br-trabajo TCP 443 a 10.10.10.5: Caddy viene de trabajo → esta ya está permitida en matriz como regla 7
+- 12: wg1 br-trabajo celular → Caddy: celular es br-trabajo ✓
+- 17-18: reglas estándar para trabajo a internet y denegación por defecto
+- 19: br-admin TCP 443 a eth0: Administración ya permite salida a internet TCP 443 (matriz regla 9)
+- Codigo de bloque "denegación por defecto" al final
+
+**ANALISIS:** Ninguna regla aceptada en nft permite un viaje que la matriz DENEGA explícitamente. La única regla notable (9) permite tráfico específico al puerto exacto que la matriz DENEGA, pero es el patrón correcto en vez de la excepción incorrecta.
+
+VEREDICTO: SIN_DESVIO
+REGLA: ninguna
+
+session_id: local-9612e7f165ea807355ed998ba10d84b4ab6adbe202ca1272d089a9854201c26d

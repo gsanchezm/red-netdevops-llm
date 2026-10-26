@@ -25,7 +25,10 @@ docs/
   01-red-actual.md    Caso de estudio: inventario, topología, línea base, hallazgos
   02-diseno.md        Diseño objetivo: segmentos, IPs, matriz de flujos, decisiones, pruebas
   03-laboratorio.md   Laboratorio emulado: entorno, operación, resultados de la matriz
-  guia-droplet-digitalocean.md   Llave SSH, prueba de regiones, droplet y Cloud Firewall (Día 4)
+  04-automatizacion.md   Ansible (roles hub y lab) y CI con GitHub Actions (Día 5)
+  05-mediciones-y-hermes.md   Mediciones finales, modelo de 4 B y evaluación de Hermes (Día 6)
+  guia-droplet-digitalocean.md   Llave SSH, prueba de regiones, droplet, Cloud Firewall y administración por la VPN (Día 4)
+  guia-celular-wireguard.md      El celular como cliente WireGuard real (Día 4)
   img/                Capturas y diagramas
 lab/
   compose.plana.yml, compose.segmentada.yml   Las dos topologías (Docker Compose)
@@ -34,10 +37,16 @@ lab/
   imagen/                                      Nodo de prueba (Alpine + herramientas de red)
   caddy/Caddyfile                              Puerta de la IA: TLS con CA interna
   hermes/config.yaml                           Configuración de Hermes (solo lectura)
+droplet/hub.nft       Política del concentrador WireGuard del droplet (nftables)
+ansible/              Roles hub (droplet) y lab (la Dell), inventario y variables de ejemplo (Día 5)
+.github/workflows/    lint.yml (CI) y desplegar.yml (despliegue manual con aprobación)
 evidencia/
   dia1/               Salidas de la línea base (IP pública y MACs ocultas)
   dia2/               Entorno, matrices por topología, contadores y log de descartes
   dia3/               Modelo a 64 K, candidatos, latencia de la API, Hermes y matrices
+  dia4/               Regiones, VPN emulada y real, capturas del iPhone (con un README que las indexa)
+  dia5/               Despliegue con Ansible
+  dia6/               Mediciones de red, latencia de la API, modelo de 4 B y evaluación de Hermes (con índice)
 scripts/
   linea-base.ps1      Captura de la línea base en Windows (solo lectura)
   ping-regiones.ps1   Latencia hacia droplets de prueba para elegir la región (Día 4)
@@ -45,9 +54,13 @@ scripts/
   lab.sh, matriz.sh   Ciclo de vida del laboratorio y matriz de alcanzabilidad
   contadores.sh, netseg-sola.sh   Qué capa de filtrado detiene cada flujo
   modelo.sh, latencia-api.sh, hermes-prueba.sh   Pruebas del Día 3 (modelo, API, Hermes)
+  wg0.sh, wg1.sh      WireGuard emulado (wg0) y real hacia el droplet (wg1) (Día 4)
+  wg0-evidencia.sh, wg1-evidencia.sh   Evidencia de las VPN
+  desplegar.sh        Ansible: lint, simular (--check --diff) y aplicar (Día 5)
+  escanear-secretos.sh   Busca IP reales y llaves en lo versionado (el repositorio es público)
+  medir-red.sh        ICMP e iperf3, plana vs segmentada, y el costo de WireGuard (Día 6)
+  snapshot.sh, hermes-evaluar.sh, proponer-pr.sh   Hermes: leer un snapshot, evaluar su calidad y proponer un PR (Día 6)
 ```
-
-Se agregan día con día: `ansible/`, `hermes/` y `.github/workflows/`.
 
 ## Reproducir
 

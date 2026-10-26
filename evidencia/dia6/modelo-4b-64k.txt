@@ -1,0 +1,53 @@
+# modelo-64k.txt - 2026-10-25 19:28:40 -0600
+Modelo: qwen3.5:4b · servidor: ollama version is 0.40.10
+
+== ollama show ==
+  Model
+    architecture        qwen35             
+    parameters          4.2B               
+    context length      262144             
+    embedding length    2560               
+    quantization        Q4_K_M             
+    requires            0.30.0             
+    renderer            qwen3.5            
+    parser              qwen3.5            
+    template source     renderer_parser    
+
+  Capabilities
+    completion     
+    vision         
+
+== Configuración del servidor (compose) ==
+OLLAMA_FLASH_ATTENTION=1
+OLLAMA_MAX_LOADED_MODELS=1
+OLLAMA_KEEP_ALIVE=5m
+OLLAMA_NO_CLOUD=1
+OLLAMA_CONTEXT_LENGTH=65536
+
+== Petición con ~48 K tokens de contexto (aguja al inicio) ==
+{"model":"qwen3.5:4b","created_at":"2026-10-26T01:31:21.963329778Z","response":"AZUL-7","done":true,"done_reason":"stop","total_duration":159922506924,"load_duration":65128216411,"prompt_eval_count":57647,"prompt_eval_cached_count":0,"prompt_eval_duration":92633280000,"eval_count":5,"eval_duration":1927477000}
+
+
+prompt_eval_count (tokens de entrada realmente procesados): 57647
+prompt_eval_duration: 92633280000 ns · load_duration: 65128216411 ns
+Aguja recuperada: AZUL-7 ✅
+
+== ollama ps (con el modelo cargado) ==
+NAME          ID              SIZE      PROCESSOR          CONTEXT    RUNNER      UNTIL              
+qwen3.5:4b    d8b0f5e9760c    5.7 GB    34%/66% CPU/GPU    65536      llamacpp    4 minutes from now    
+
+== GPU ==
+name, memory.used [MiB], memory.free [MiB], memory.total [MiB]
+NVIDIA GeForce RTX 3060 Laptop GPU, 5096 MiB, 899 MiB, 6144 MiB
+
+== Registro de carga de Ollama ==
+load_tensors: offloaded 18/33 layers to GPU
+load_tensors:   CPU_Mapped model buffer size =  1442.25 MiB
+load_tensors:        CUDA0 model buffer size =  1570.50 MiB
+llama_context: n_ctx_seq             = 65536
+llama_context: n_ctx_seq (65536) < n_ctx_train (262144) -- the full capacity of the model will not be utilized
+llama_kv_cache: size = 2048.00 MiB ( 65536 cells,   8 layers,  1/1 seqs), K (f16): 1024.00 MiB, V (f16): 1024.00 MiB
+sched_reserve:      CUDA0 compute buffer size =   495.25 MiB
+sched_reserve:  CUDA_Host compute buffer size =    90.12 MiB
+reserve_compute_meta:      CUDA0 compute buffer size =   223.30 MiB
+reserve_compute_meta:        CPU compute buffer size =    24.93 MiB

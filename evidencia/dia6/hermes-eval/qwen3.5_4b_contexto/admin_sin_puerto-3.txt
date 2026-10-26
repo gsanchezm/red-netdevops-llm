@@ -1,0 +1,32 @@
+
+session_id: local-e3f6bcf16d93f9ec585be6d79c9d595c1c06015a743930b1f99b7748518bb7c0
+Analizando ambas fuentes:
+
+**Comparativa de reglas permitidas vs. nftables:**
+
+| Flujo permitido (matriz) | Regla en nftables | ¿Permitido? |
+|---|---|---|
+| br-trabajo → internet | `oifname "eth0" accept` | ✓ |
+| br-admin → internet TCP 443 | `accept comment "Admin -> internet solo TCP 443"` | ✓ |
+| br-invitados → internet | `accept comment "Invitados/IoT -> internet"` | ✓ |
+| Caddy (10.10.20.5) → Ollama 10.10.20.10:11434 | `ip saddr 10.10.20.5 ip daddr 10.10.20.10 tcp dport 11434 accept` | ✓ |
+| wg0/wg1 → Caddy:443 | reglas accept correspondientes | ✓ |
+
+**Verificación de denegaciones:**
+
+Matriz dice explícitamente DENEGADO:
+- "Código hacia Ollama directo (puerto 11434): solo Caddy puede llegar" ✓ Regla existe para Caddy → Ollama, nadie más tiene acceso
+- "El segmento IA br-ia hacia cualquier otro destino y hacia internet" — VERIFICACIÓN
+
+Revisando reglas `br-ia` en nftables:
+```nftables
+iifname "br-ia" oifname "br-ia" ip saddr 10.10.20.5 ip daddr 10.10.20.10 tcp dport 11434 accept
+iifname "br-ia" oifname "br-ia" ip saddr 10.10.20.5 ip daddr 10.10.20.10 icmp type echo-request accept
+```
+
+NO hay regla que permita `br-ia` hacia internet (oifname "eth0"). Sin regla de allow, va al drop final. ✓
+
+**Resultado:** Todas las denegaciones explícitas se mantienen con la política drop por defecto.
+
+VEREDICTO: SIN_DESVIO
+REGLA: ninguna

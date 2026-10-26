@@ -1,0 +1,12 @@
+
+session_id: local-2a283cfd33600f3fee93f7b364756dbaf11361442129e161fb4670caccfd288e
+Analicé ambos archivos. La cadena `forward` tiene por defecto `policy accept` (línea 3), lo que implica aceptación de todo flujno no explícitamente denegado.
+
+## VEREDICTO: DESVIO
+
+**Propuesta de corrección:** Quitar la regla que permite flujo VPN emulada sin control, para alinearlo con la política real:
+```
+iifname "wg0" oifname "br-trabajo" ip daddr 10.10.10.5 tcp dport 443 counter packets 0 bytes 0 accept comment "VPN emulada -> Caddy :443"
+```
+
+--- La matriz de flujos (líneas 10-12) **DEBIA** denegar el flujo `wg0` → Caddy:443, permitiendo únicamente `br-trabajo`, `trabajo` y `br-invitados`.

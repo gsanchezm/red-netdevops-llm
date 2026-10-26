@@ -1,0 +1,20 @@
+**ANÁLISIS:**
+
+**Política cargada nftables:**
+- Policy default: `drop` ✓ (correcto)
+- Br-ia → Ollama (10.10.20.5→10.10.20.10:11434): LINEA 9 - **accept** (Caddy → Ollama, PERMITIDO por matriz)
+
+**Política matriz-de-flujos:**
+- Caddy → Ollama puerto 11434: ✅ DEBE permitirse
+- br-ins (br-invitados/br-admin/br-trabajo) → internet puertos no 443: ⚠️ PROBLEMÁTICO
+
+**Problema detectado:**
+LINEA 9 acepta Caddy→Ollama (correcto según matriz). Sin embargo, LINEAS 15 y 16 aceptan br-invitados/br-admin hacia internet sin restricción puertos TCP 443, violando que Administración necesita port 443 EXCLUSIVAMENTE y br-invitados debe bloquearse de salir a internet (solo su propio segmento).
+
+**VEREDICTO: DESVIO**
+REGLA: iifname "br-ia" oifname "br-ia" ip saddr 10.10.20.5 ip daddr 10.10.20.10 tcp dport 11434 counter packets 2 bytes 120 accept comment "Caddy -> Ollama :11434"
+
+**PROPUESTA DE CORRECCIÓN:**
+Quitar lineas 15-16 (br-invitados/br-admin hacia internet sin restricción TCP 443). Reemplazar con reglas de drop por defecto para esos orígenes no permitidos.
+
+session_id: local-08f6c276d5f87b0fe57afaa2ee870af789f9ababb5018253be7c9c281aa2a3f5

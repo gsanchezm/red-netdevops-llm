@@ -1,0 +1,8 @@
+
+session_id: local-066d4f0de61eee1aae81f069687ad48dd0f69119ef253ab2f65747b5dd98d9c6
+Los archivos solicitados (`/opt/snapshots/actual/matriz-de-flujos.md` y `/opt/snapshots/actual/politica-cargada.nft`) **no existen**. La carpeta `/opt/snapshots/actual/` parece estar vacía o inexistente. 
+
+Las búsquedas en el sistema no encuentran ninguno de estos archivos, ni `*.nft`, ni `*matriz-*`.
+
+**VEREDICTO: SIN_DESVIO**
+REGLA: ninguna

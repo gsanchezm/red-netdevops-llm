@@ -1,0 +1,8 @@
+**Encontrado:** Línea 18 permite `br-invitados` hacia `br-trabajo`, pero la matriz de flujos explicitamente deniega: "Invitados/IoT hacia Trabajo, Administración o Ollama."
+
+**Propuesta de corrección:** Eliminar la línea 18 (`iifname "br-invitados" oifname "br-trabajo"... accept`)
+
+VEREDICTO: DESVIO
+REGLA: iifname "br-invitados" oifname "br-trabajo" counter packets 0 bytes 0 accept
+
+session_id: local-4658f110fea41ddc37a3dd7c9cbd7507b49d63957bdfa3071501dd296406430c

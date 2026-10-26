@@ -215,14 +215,15 @@ Lo que `scripts/hermes-prueba.sh` comprueba (`evidencia/dia3/hermes.txt`):
 - **Sin puertos de entrada desde la red**: solo escucha en loopback (su API local en
   `127.0.0.1:8642`); desde otro equipo de la VLAN 99 ese puerto no abre.
 - **Sin acceso al host**: no monta `docker.sock` ni carpetas del host; sus únicos montajes son
-  la CA (solo lectura), su configuración (solo lectura) y un volumen para sesiones y memoria.
+  la CA (solo lectura), su configuración (solo lectura), los snapshots de estado que puede leer
+  (`/snapshots`, solo lectura, desde el Día 6) y un volumen para sesiones y memoria.
 - **No puede cambiar su propia configuración**: `config.yaml` sale del repositorio y se monta
   de solo lectura (`Read-only file system` al intentar escribirlo). Es la aplicación práctica
   de D7: los cambios pasan por el repositorio y el pipeline, no por el agente.
 
 Una pregunta simple tarda ≈ 16 s la primera vez (carga del modelo y el prompt de sistema de
 Hermes, que incluye los esquemas de sus herramientas) con 100 % GPU y contexto 65536. La
-calidad de un modelo de 2 B para llamar herramientas no se evalúa aquí: es trabajo del Día 6.
+calidad de un modelo de 2 B para llamar herramientas se evaluó en el Día 6 (`05-mediciones-y-hermes.md` §4): no es fiable.
 
 ### 7.5 Memoria: el límite de commit de Windows
 

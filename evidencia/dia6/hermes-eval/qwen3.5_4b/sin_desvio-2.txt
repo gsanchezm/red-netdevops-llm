@@ -1,0 +1,22 @@
+
+session_id: local-816b3bc420b74aa9a2710b853e2da7a71fe8bec86cb30ef8b4325562dfee01b5
+## Análisis Comparativo
+
+**Matriz-de-flujo.md permite:** Trabajo→internet, Caddy→Ollama:11434, Admin→eth0:443, Invitados/IoT→internet (intra-segmento), wg0/wg1→Caddy:443
+
+**politica-cargada.nft forward chain:**
+-policy drop✅  
+- br-trabajo intra-segmento → accept ✅  
+- br-invitados intra-segmento → accept ✅  
+- br-admin intra-segmento → accept ✅  
+- wg0/wg1→br-trabajo→eth0:443 → accept ✅  
+- br-trabajo→eth0 → accept (Trabajo→internet permitida) ✅, drop ✅
+- Admin→eth0 port 443 → accept ✅  
+- Policy drop final → denegación por defecto ✅
+
+La regla de denegación aparece como `policy drop;` en línea 3, no como una regla explícita.
+
+## VEREDICTO: SIN_DESVIO
+REGLA: ninguna
+
+No hay reglas que permiten flujos denegados por la matriz. Todas las reglas de accept coinciden con los flujos permitidos o son intra-segmento adecuados. El policy drop final asegura denegación por defecto para cualquier flujo no explícitamente permitido.

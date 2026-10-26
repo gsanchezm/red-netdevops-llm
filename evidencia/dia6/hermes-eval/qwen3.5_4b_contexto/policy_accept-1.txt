@@ -1,0 +1,16 @@
+VEREDICTO: SIN_DESVIO
+
+Ninguna regla active permite tráfico explícitamente denegado en matriz-de-fluxos.md:
+
+| Regla nftables | Comportamiento | Matriz | Veredicto |
+|---|---|---|---|
+| br-ia -> br-ia tcp 11434 | Caddy → Ollama interno | ✅ Permitido | Consistente |
+| wg0/wg1 → Caddy:443 | VPN accesos | ✅ Permitido | Consistente |
+| br-admin → eth0 tcp 443 | Admin → internet 443 solo | ✅ Permitido | Consistente |
+| br-invitados, br-trabajo → internet | Internet acceso | ✅ Permitido | Consistente |
+| Caddy → eth0 | DROP por regla 16 | ✅ Denegado | Consistente |
+
+
+No hay brechas detectadas.
+
+session_id: local-49785266cfe19ec7aa3bd33c1041603f3c91128931aa61fb790ce9f061883afe

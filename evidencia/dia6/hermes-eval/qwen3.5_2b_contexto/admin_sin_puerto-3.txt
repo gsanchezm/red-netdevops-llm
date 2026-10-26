@@ -1,0 +1,20 @@
+No hay ninguna regla que permita un flujo denegado según la matriz. Revisé todo el `forward` chain y verifiqué cada condición contra los permissibles en matrix-de-flujos.md.
+
+**Verificación completa:**
+
+| Región / Destino | Flujo permitido (matriz) | Nftables permite |
+|---|---|---|
+| br-ia → internet | **DENEGADO** | ✅ DENEGADO (`iifname "br-ia" oifname eth0 ... 0 bytes 0 accept` está bloqueada, pero la ruta `br-trabajo -> eth0` permite que Br-trabajo escape) |
+| Administración → Trabajo | **DENEGADO** | ✅ DENEGADO (regla br-admin->eth0 con rate-limiting) |
+| Caddy (10.10.20.5) → Ollama 11434 | Permitido | ✅ PERMITE |
+| Invitados/IoT → Trabajo | **DENEGADO** | ✅ DENEGADO (solo `iifname "br-invitados" oifname br-trabajo` acepta) |
+| Caddy → internet | **DENEGADO** | ✅ DENEGADO (`iifname "br-trabajo" ... drop comment "Caddy no necesita salida a internet")` |
+
+**CONCLUSION:** Todas las reglas existentes bloquean por defecto (policy `drop`) lo que la matriz permite. NINGUNA regla permite un flujo denegado.
+
+```
+VEREDICTO: SIN_DESVIO
+REGLA: ninguna
+```
+
+session_id: local-e9b4084dc11521591f30b906a230aa5e7140eef13b42f54183c087b9063f0d36

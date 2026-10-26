@@ -1,0 +1,8 @@
+VEREDICTO: DESVIO
+REGLA: `iifname "br-invitados" oifname "br-trabajo" counter packets 0 bytes 0 accept`
+
+La política DENEGA explícitamente flujos de Invitados/IoT hacia Trabajo ("Invitados/IoT hacia Trabajo, Administración o Ollama"), pero esta regla en nftables PERMITE br-invitados → br-trabajo.
+
+PROPOSICION: Eliminar la regla `iifname "br-invitados" oifname "br-trabajo" counter packets 0 bytes 0 accept` de la cadena forward
+
+session_id: local-5bc04190939d4dfaaccd24afb0f553d3ef5827ca69132eb4b7cc34c9a6e8a290

@@ -1,0 +1,16 @@
+## Análisis de Desvío de Política
+
+Comparando las reglas permitidas por la política vs. la cadena forward:
+
+La política permite todos estos flujos:
+- Trabajo solo (br-trabajo, br-admin) → internet TCP 443
+- Caddy (10.10.20.5) ↔ Ollama 10.10.20.10/tcp 11434
+- Invitados/IoT (br-invitados) ↔ cualquier destino de internet
+- VPN wg0 y wg1 específicas
+
+**No hay desvío**: la cadena forward actualizada usa `drop` en línea 3, y todas las líneas que permiten tráfico específico tienen restricciones explícitas. Los flujos que se permiten con la política también deben ser permitidos por el kernel (como lo hace el `ct.state established,related accept`).
+
+VEREDICTO: SIN_DESVIO
+REGLA: ninguna
+
+session_id: local-2a8993f101d64021b435d015c6741e6613d26f872eb43efb4ed1ee15813e47f6

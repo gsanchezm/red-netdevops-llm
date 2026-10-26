@@ -1,0 +1,21 @@
+
+session_id: local-5e0ee447ce5fa9e763111e99843ae2224a03dbaa1d20810e248cb6bcb76a18d8
+Voy a analizar ambas fuentes:
+
+**Análisis de desvios (flujos permitidos por docs vs nftables):**
+
+| Regla nft | Flujo actual | ¿Flujo denegado? |
+|-----------|-------------|------------------|
+| L6 | br-trabajo → br-trabajo | ✅ Permitido |
+| L7 | br-invitados → br-invitados | ✅ Permitido |
+| L8 | br-admin → br-admin | ✅ Permitido |
+| L9 | 10.10.20.5:br-ia → 10.10.20.10:443 | ✅ Permitido |
+| L16 | br-admin → eth0 tcp dport 443 | ✅ Coincide docs ("solo TCP 443") |
+| L18 | br-invitados → br-trabajo | ❌ **NO DENEGADO** (docs dice "Invitados hacia Trabajo denegado") |
+
+**Veredicto: hay desvío.** La regla en línea 18 permite tráfico de Invitados hacia br-trabajo, pero la matriz de flujos lo deniega explícitamente.
+
+VEREDICTO: DESVIO  
+REGLA: `iifname "br-inquitados" oifname "br-trabajo" counter packets 0 bytes 0 accept`
+
+PROPOSE: Eliminar línea 18 o cambiar a `drop` para cumplir la regla de denegación explícita.
