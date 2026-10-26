@@ -7,7 +7,8 @@ Aquí se codifica con Ansible lo que en el Día 4 se hizo a mano, y se valida co
 > **Estado.** Los dos roles están **aplicados y son idempotentes**: `lab` (la Dell) hizo 5 cambios la primera vez y 0
 > la segunda (`evidencia/dia5/ansible-lab.txt`); `hub` (el droplet) hizo 4 y luego 0 (`evidencia/dia5/ansible-hub.txt`).
 > La CI de GitHub está en verde, el *runner* autohospedado está en línea, el Environment `produccion-lab` exige
-> aprobación y la rama `main` está protegida (§5). Falta ejercitar el despliegue manual de punta a punta (§5).
+> aprobación y la rama `main` está protegida (§5). El despliegue manual se ejercitó de punta a punta: simulación,
+> aprobación humana, aplicación y comprobación de salud (`evidencia/dia5/despliegue-github-actions.md`).
 
 ## 1. Estructura
 
@@ -141,6 +142,7 @@ poder revisarlo y revocarlo (`userdel -r deploy && rm /etc/sudoers.d/90-deploy`)
 | `netseg.service` | Activo, habilitado y ordenado antes de `docker.service` |
 | Rol `hub` en el droplet real | Simulación: 3 cambios; aplicación: 4 (nombre del sistema, `wg1.conf`, `nftables` activado y sincronización de pares); **0 la segunda**. El droplet sigue sano: 3 pares con *handshake*, firewall `drop`, `ip_forward=1` |
 | Runner | En línea (`dell-wsl`), como `gsanchezm`, SHA-256 verificado |
+| `desplegar.yml` de punta a punta | Simulación `changed=0` → **8.6 h esperando** la aprobación del revisor → aplicación `changed=0` → `verificar-hub.sh`: droplet sano. Un intento de registrar la aprobación desde un asistente fue bloqueado y se aceptó: la aprobación es un acto humano |
 
 Hallazgos de esta etapa: (1) el escáner de secretos daba un **falso verde** (§3); (2) un YAML inválido en un
 `meta/main.yml` (`: ` dentro de un texto sin comillas) que rompía a Ansible y a `ansible-lint` a la vez; (3) cuatro
