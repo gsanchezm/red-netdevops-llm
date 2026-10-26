@@ -3,7 +3,7 @@
 # un servidor de aplicaciones: solo termina `wg1` y reenvía lo mínimo entre sus dos pares. Repite por
 # dentro la política del Cloud Firewall de DigitalOcean (que filtra por fuera) con denegación por defecto.
 #
-# Pares de wg1 (10.10.51.0/24):  droplet .1 · Dell .2 · celular .3
+# Pares de wg1 (10.10.51.0/24):  droplet .1 · Dell .2 · celular .3 · PC de administración (pc-admin) .4
 # La Dell anuncia 10.10.10.5/32 (Caddy): el celular entra a https://10.10.10.5 y el droplet lo reenvía
 # al par de la Dell según su AllowedIPs, sin NAT (D12).
 #
@@ -27,8 +27,7 @@ table inet hub {
         udp sport 67 udp dport 68 accept comment "renovación DHCP"
 
         udp dport 51820 accept comment "WireGuard (el Cloud Firewall lo abre a todo IPv4; no responde a lo no autenticado)"
-        iifname "wg1" tcp dport 22 accept comment "SSH por la VPN (destino final)"
-        tcp dport 22 accept comment "SSH desde internet: TEMPORAL; el Cloud Firewall lo limita a la IP de casa. Se quita al final"
+        iifname "wg1" ip saddr 10.10.51.4 tcp dport 22 accept comment "SSH solo desde la PC de administración (pc-admin) por la VPN; ya no hay SSH desde internet"
 
         limit rate 6/minute burst 10 packets log prefix "hub-input-drop: " level info
     }

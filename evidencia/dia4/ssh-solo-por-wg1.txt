@@ -1,0 +1,24 @@
+# SSH del droplet solo por wg1 · 2026-10-25 18:50:32 -06:00
+
+Cierre de la exposición de administración del droplet (docs/02-diseno.md §4 y §10): el SSH ya no existe hacia
+internet; solo entra la PC de administración (pc-admin, 10.10.51.4) por la VPN wg1. Se tomó desde esa PC.
+
+## Por el túnel (ssh redes-lab-hub-vpn -> 10.10.51.1)
+conexión SSH vista por el servidor (origen puerto destino puerto): 10.10.51.4 54816 10.10.51.1 22
+
+Reglas de entrada de la tabla nftables inet hub (política: drop):
+  type filter hook input priority filter; policy drop;
+  udp sport 67 udp dport 68 accept comment "renovación DHCP"
+  udp dport 51820 accept comment "WireGuard (el Cloud Firewall lo abre a todo IPv4; no responde a lo no autenticado)"
+  iifname "wg1" ip saddr 10.10.51.4 tcp dport 22 accept comment "SSH solo desde la PC de administración (pc-admin) por la VPN; ya no hay SSH desde internet"
+
+nftables al arrancar: enabled
+
+## Por internet (IP pública del droplet, 45.55.x.x)
+SSH: ssh: connect to host 45.55.x.x port 22: Connection timed out
+TCP 22 desde la PC de administración: TcpTestSucceeded=False
+
+## Cloud Firewall de DigitalOcean (redes-lab-hub-fw) tras borrar la regla SSH
+Entrada: solo UDP 51820 desde All IPv4 (WireGuard; no responde a paquetes no autenticados).
+Salida: ICMP, TCP y UDP hacia todos (valores por defecto). 4 reglas en total.
+Respaldo si se pierde el acceso por la VPN: consola web del droplet en el panel de DigitalOcean.

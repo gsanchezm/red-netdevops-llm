@@ -182,7 +182,54 @@ política de `02-diseno.md` §5.
 5. Botón **Create Firewall**.
 
 En el Día 4, cuando `wg1` esté funcionando, **elimina la regla de SSH desde internet**:
-desde entonces el droplet se administra solo por el túnel (`10.10.51.1`).
+desde entonces el droplet se administra solo por el túnel (`10.10.51.1`). Los pasos están en la
+siguiente sección.
+
+### Administrar el droplet solo por la VPN (Día 4; verificado el 25-oct-2026)
+
+La PC de administración entra por `wg1` como un par más (`pc-admin`, `10.10.51.4`). Se hizo en este orden;
+**no cierres nada hasta que la prueba 4 pase**:
+
+1. **Túnel en Windows.** App WireGuard → flecha de *Agregar túnel* → **Agregar túnel vacío…**. Nombre
+   `redes-lab-admin`. Conserva la `PrivateKey` que genera la app y agrega debajo:
+
+   ```
+   Address = 10.10.51.4/32
+
+   [Peer]
+   PublicKey = <CLAVE-PÚBLICA-DEL-DROPLET>
+   Endpoint = <IP-DEL-DROPLET>:51820
+   AllowedIPs = 10.10.51.1/32
+   PersistentKeepalive = 25
+   ```
+
+   Con `AllowedIPs = 10.10.51.1/32` solo viaja por el túnel lo dirigido al droplet. La **clave pública** de
+   la PC es la que muestra la app arriba del cuadro (la privada no sale de la PC).
+2. **Par en el droplet** (por SSH, antes de cerrarlo): agrega a `/etc/wireguard/wg1.conf` un `[Peer]` con
+   esa clave pública y `AllowedIPs = 10.10.51.4/32`, y aplícalo con
+   `wg syncconf wg1 <(wg-quick strip wg1)` (no reinicia la interfaz ni tira a los demás pares).
+3. **Entrada de SSH por el túnel** en `~/.ssh/config`. `HostKeyAlias` reutiliza la huella ya aceptada:
+
+   ```
+   Host redes-lab-hub-vpn
+       HostName 10.10.51.1
+       HostKeyAlias <IP-del-droplet>
+       User root
+       IdentityFile ~/.ssh/id_ed25519_redes_lab
+       IdentitiesOnly yes
+   ```
+
+4. **Prueba** con el túnel activo: `ssh redes-lab-hub-vpn 'echo $SSH_CONNECTION'` debe mostrar como origen
+   `10.10.51.4`. Si no entra, **no sigas**.
+5. **Firewall del droplet.** Carga `droplet/hub.nft` (sin SSH desde internet) con un reversor por si te
+   quedas fuera: `systemd-run --unit=hub-revert --on-active=150 nft -f /etc/nftables.conf.prev`, carga la
+   nueva, abre **otra** conexión SSH por el túnel y, si entra, cancela con `systemctl stop hub-revert.timer`.
+6. **Cloud Firewall.** Panel → *Networking → Firewalls → `redes-lab-hub-fw`* → menú `⋯` de la regla
+   **SSH TCP 22** → *Delete rule* → escribe `SSH (TCP 22)` para confirmar. Debe quedar solo UDP 51820.
+
+**Respaldo:** la consola web del droplet (*Access → Launch Droplet Console*) sigue disponible si la VPN falla.
+Para abrir SSH de forma temporal, vuelve a crear la regla en el Cloud Firewall con tu IP y cárgale al droplet la
+versión anterior de `nftables`. Si cambias de PC, genera una llave nueva y agrega otro par.
 
 ## D. Destruir un droplet
 
@@ -203,5 +250,6 @@ Es **irreversible**. El despliegue con Ansible del Día 5 permite recrearlo.
 - [ ] `evidencia/dia4/regiones.txt` muestra la región elegida con 0 % de pérdida.
 - [ ] Los droplets de prueba están destruidos (en el panel solo aparece `redes-lab-hub`).
 - [ ] `ssh redes-lab-hub` funciona con la llave y **no** acepta contraseña.
-- [ ] El Cloud Firewall solo permite SSH desde tu IP y UDP 51820.
+- [ ] El Cloud Firewall permitía al inicio SSH solo desde tu IP y UDP 51820; **al terminar el Día 4 solo permite UDP 51820**.
+- [ ] `ssh redes-lab-hub-vpn` entra por el túnel y `ssh redes-lab-hub` (IP pública) da *timeout*.
 - [ ] La IP del droplet no aparece en ningún archivo del repositorio.

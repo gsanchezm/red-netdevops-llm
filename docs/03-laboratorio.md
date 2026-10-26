@@ -364,5 +364,13 @@ no se repitió al recrear el laboratorio; **se desconoce la causa**. Como la mat
 Otra lección: en el droplet, `wg syncconf` **no** crea las rutas de `AllowedIPs` (`10.10.10.5/32`); hay que
 reiniciar `wg-quick@wg1`. Y en iOS el campo *Punto final* acepta `IP:puerto`, no `IP/puerto`.
 
-**Pendiente del Día 4:** dejar el SSH del droplet solo por `wg1` y quitar la regla SSH del Cloud Firewall
-(requiere un cliente WireGuard en la PC de administración). `iperf3` por los túneles va en el Día 6.
+**SSH del droplet solo por `wg1`** (`evidencia/dia4/ssh-solo-por-wg1.txt`). La PC de administración es un
+tercer par de `wg1` (`pc-admin`, `10.10.51.4/32`, con `AllowedIPs = 10.10.51.1/32`: por el túnel solo viaja lo
+dirigido al droplet). En `hub.nft` desapareció la regla de SSH desde internet y queda una sola:
+`iifname "wg1" ip saddr 10.10.51.4 tcp dport 22`, de modo que ni el celular ni la Dell pueden entrar por
+SSH. Después se borró la regla SSH del Cloud Firewall, que solo deja entrar **UDP 51820**. Resultado
+medido desde la PC: por el túnel, el servidor ve la conexión como `10.10.51.4 → 10.10.51.1:22`; por la IP
+pública, SSH y TCP 22 dan *timeout*. Se aplicó con un reversor automático de 150 s (`systemd-run`) que
+restauraba la versión anterior por si se perdía el acceso, y se canceló tras probar una conexión nueva.
+Esto elimina además la fragilidad de una regla fijada a la IP de casa, que puede cambiar. Respaldo ante un
+fallo de la VPN: la consola web del droplet. `iperf3` por los túneles va en el Día 6.
