@@ -40,10 +40,15 @@ cli() { docker exec cliente-remoto "$@"; }
   cli sh -c 'echo | openssl s_client -connect 10.10.10.5:443 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName' | sed -E 's/^/  /'
   echo
   echo "## Lo que la VPN no alcanza (nc -zv -w 2 desde cliente-remoto, por el túnel)"
-  for d in "Ollama 10.10.20.10 11434" "proyecto1 10.10.10.11 8080" "colector 10.10.99.30 9100" "iot-sensor 10.10.30.10 1883" "Caddy (pata IA) 10.10.20.5 443"; do
-    set -- $d; port="${@: -1}"; ip="${@: -2:1}"; nombre="${d% $ip $port}"
+  while IFS='|' read -r nombre ip port; do
     printf '  %-16s %s:%s -> %s\n' "$nombre" "$ip" "$port" "$(cli nc -zv -w 2 "$ip" "$port" 2>&1 | tail -1 | sed -E 's/^nc: //')"
-  done
+  done <<'DESTINOS'
+Ollama|10.10.20.10|11434
+proyecto1|10.10.10.11|8080
+colector|10.10.99.30|9100
+iot-sensor|10.10.30.10|1883
+Caddy (pata IA)|10.10.20.5|443
+DESTINOS
   echo
   echo "## Contadores de netseg (forward)"
   $SUDO nft list chain inet netseg forward | grep -E 'wg0|denegación' | sed -E 's/^\s+/  /'

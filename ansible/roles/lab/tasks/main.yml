@@ -1,0 +1,77 @@
+---
+# Host del laboratorio (la Dell, WSL2 Ubuntu 24.04). Resuelve el pendiente del Día 2: netseg como servicio de
+# systemd, para que las reglas existan antes que los contenedores también tras un reinicio.
+- name: Paquetes del host del laboratorio
+  ansible.builtin.apt:
+    name:
+      - wireguard-tools
+      - nftables
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Reenvío IP persistente (el kernel hace de router entre segmentos)
+  ansible.builtin.copy:
+    content: "net.ipv4.ip_forward = 1\n"
+    dest: /etc/sysctl.d/99-laboratorio.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Directorio de la política
+  ansible.builtin.file:
+    path: /etc/redes-lab
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# Copia estable en /etc: el repositorio puede estar en el directorio temporal de un runner.
+- name: Política entre segmentos (lab/nftables/netseg.nft), validada antes de instalarla
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../lab/nftables/netseg.nft"
+    dest: /etc/redes-lab/netseg.nft
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/nft -c -f %s
+  notify: Recargar netseg
+
+- name: Unidad de systemd que carga netseg antes que Docker
+  ansible.builtin.template:
+    src: netseg.service.j2
+    dest: /etc/systemd/system/netseg.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Recargar systemd
+
+- name: Aplicar la unidad antes de habilitarla
+  ansible.builtin.meta: flush_handlers
+
+# Limitación de --check: si la unidad aún no existe (primera vez), systemd no puede consultarla.
+- name: Servicio netseg activo y habilitado al arrancar
+  ansible.builtin.systemd_service:
+    name: netseg
+    enabled: true
+    state: started
+  when: not ansible_check_mode
+
+- name: Levantar la topología segmentada (scripts/lab.sh)
+  ansible.builtin.command:
+    cmd: "{{ lab_repo }}/scripts/lab.sh segmentada"
+  when: lab_levantar | bool
+  changed_when: true
+
+- name: Leer la tabla netseg cargada
+  ansible.builtin.command: /usr/sbin/nft list table inet netseg
+  register: lab_netseg
+  changed_when: false
+  check_mode: false
+
+- name: Comprobar que la política es de denegación por defecto
+  ansible.builtin.assert:
+    that:
+      - "'policy drop' in lab_netseg.stdout"
+    fail_msg: La tabla inet netseg no tiene política drop; el laboratorio no está protegido.
+    quiet: true

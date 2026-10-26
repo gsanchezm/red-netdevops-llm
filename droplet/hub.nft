@@ -27,7 +27,7 @@ table inet hub {
         udp sport 67 udp dport 68 accept comment "renovación DHCP"
 
         udp dport 51820 accept comment "WireGuard (el Cloud Firewall lo abre a todo IPv4; no responde a lo no autenticado)"
-        iifname "wg1" ip saddr 10.10.51.4 tcp dport 22 accept comment "SSH solo desde la PC de administración (pc-admin) por la VPN; ya no hay SSH desde internet"
+        iifname "wg1" ip saddr { 10.10.51.2, 10.10.51.4 } tcp dport 22 accept comment "SSH solo por la VPN: PC de administración (.4) y la Dell (.2, Ansible y CI con el usuario deploy); no hay SSH desde internet"
 
         limit rate 6/minute burst 10 packets log prefix "hub-input-drop: " level info
     }

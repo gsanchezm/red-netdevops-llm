@@ -17,7 +17,7 @@ case "$redes" in
   *plana_*)      TOPO=plana ;;
   *)             echo "No se reconoce la topología ($redes)" >&2; exit 2 ;;
 esac
-SALIDA="$RAIZ/evidencia/dia3/latencia-$TOPO.md"; mkdir -p "$(dirname "$SALIDA")"
+SALIDA="${SALIDA:-$RAIZ/evidencia/dia3/latencia-$TOPO.md}"; mkdir -p "$(dirname "$SALIDA")"
 
 # Bucle de medición dentro de un contenedor con curl que comparte la red del origen.
 # Imprime por petición: tcp tls primer_byte total tokens ns_generacion (segundos en curl).
@@ -70,8 +70,10 @@ resumen() { # etiqueta  (lee las líneas de medir por stdin)
 } > "$SALIDA"
 
 # Calentamiento: carga el modelo y calienta la conexión (no se mide).
+ARGS_CALENTAR=(http://10.10.0.10:11434/api/generate)
+[[ $TOPO == segmentada ]] && ARGS_CALENTAR=(--cacert /ca/root.crt https://ia.lab.internal/api/generate)
 docker run --rm --network container:proyecto1 -v "$RAIZ/lab/ca:/ca:ro" --entrypoint curl lab-nodo:1 -s -m 200 -o /dev/null \
-  $([ "$TOPO" = segmentada ] && echo "--cacert /ca/root.crt https://ia.lab.internal/api/generate" || echo "http://10.10.0.10:11434/api/generate") \
+  "${ARGS_CALENTAR[@]}" \
   -d '{"model":"'"$MODELO"'","prompt":"OK","stream":false,"think":false,"options":{"num_predict":2}}'
 
 if [[ $TOPO == plana ]]; then
@@ -81,6 +83,10 @@ else
   medir proyecto1 "$BUCLE" https://ia.lab.internal/api/generate --cacert /ca/root.crt | resumen "Trabajo → Caddy (TLS) → Ollama, por nombre" >> "$SALIDA"
   medir proyecto1 "$BUCLE" https://10.10.10.5/api/generate --cacert /ca/root.crt | resumen "Trabajo → Caddy (TLS) → Ollama, por IP" >> "$SALIDA"
   medir hermes    "$BUCLE" https://ia.lab.internal/api/generate --cacert /ca/root.crt | resumen "Admin → Caddy (TLS) → Ollama, por nombre" >> "$SALIDA"
+  # VPN emulada (Día 4): el cliente remoto llega a Caddy por su IP real a través de wg0 (cifrado WireGuard).
+  if docker exec cliente-remoto ip link show wg0 >/dev/null 2>&1; then
+    medir cliente-remoto "$BUCLE" https://10.10.10.5/api/generate --cacert /ca/root.crt | resumen "VPN emulada: cliente-remoto → wg0 → Caddy (TLS) → Ollama, por IP" >> "$SALIDA"
+  fi
 fi
 medir proyecto1 "$BUCLE_SIMPLE" https://api.anthropic.com/ | resumen "Referencia nube: Trabajo → api.anthropic.com (solo conexión, sin modelo)" >> "$SALIDA"
 

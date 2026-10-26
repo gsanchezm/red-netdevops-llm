@@ -1,0 +1,12 @@
+# Gestionado por Ansible (roles/hub). No editar a mano: el repositorio es la fuente de verdad.
+[Interface]
+Address = {{ hub_wg_direccion }}
+ListenPort = {{ hub_wg_puerto }}
+PrivateKey = {{ hub_wg_privada.content | b64decode | trim }}
+{% for par in hub_pares %}
+
+[Peer]
+# {{ par.nombre }}
+PublicKey = {{ par.clave_publica }}
+AllowedIPs = {{ par.allowed_ips }}
+{% endfor %}

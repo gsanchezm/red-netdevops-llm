@@ -1,0 +1,14 @@
+---
+# Copiar a ~/.config/redes-lab/vars.yml (FUERA del repositorio, que es público) y completar.
+# Las llaves PRIVADAS nunca van aquí: se generan en cada host. Aquí solo las públicas de los pares.
+# Cómo ver una clave pública:  wg show wg1   (en cada host)  o la que muestra la app de WireGuard.
+hub_pares:
+  - nombre: dell
+    clave_publica: "<CLAVE-PÚBLICA-DE-LA-DELL>"
+    allowed_ips: "10.10.51.2/32, 10.10.10.5/32"   # la Dell anuncia a Caddy como /32 (D12)
+  - nombre: celular
+    clave_publica: "<CLAVE-PÚBLICA-DEL-CELULAR>"
+    allowed_ips: "10.10.51.3/32"
+  - nombre: pc-admin
+    clave_publica: "<CLAVE-PÚBLICA-DE-LA-PC-DE-ADMINISTRACIÓN>"
+    allowed_ips: "10.10.51.4/32"

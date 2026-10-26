@@ -1,0 +1,4 @@
+---
+# Variables comunes. Los datos propios (llaves públicas de los pares, IP pública del droplet) NO van en el
+# repositorio, que es público: se pasan con -e @~/.config/redes-lab/vars.yml (modelo: ansible/vars.example.yml).
+caddy_ip: 10.10.10.5

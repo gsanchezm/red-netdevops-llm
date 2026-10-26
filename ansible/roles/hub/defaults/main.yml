@@ -1,0 +1,7 @@
+---
+# Los pares reales llegan por -e @~/.config/redes-lab/vars.yml (ver ansible/vars.example.yml).
+hub_pares: []
+hub_hostname: redes-lab-hub
+hub_wg_interfaz: wg1
+hub_wg_direccion: 10.10.51.1/24
+hub_wg_puerto: 51820

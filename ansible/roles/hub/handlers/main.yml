@@ -1,0 +1,18 @@
+---
+- name: Aplicar sysctl del concentrador
+  ansible.builtin.command: sysctl -p /etc/sysctl.d/99-hub.conf
+  changed_when: true
+
+# Carga atómica (el archivo borra y recrea la tabla en una sola transacción): no corta el SSH de Ansible,
+# porque la regla que lo permite está en el mismo archivo y las conexiones establecidas se conservan.
+- name: Cargar nftables del concentrador
+  ansible.builtin.command: /usr/sbin/nft -f /etc/nftables.conf
+  changed_when: true
+
+# syncconf y no restart: reiniciar wg1 cortaría la propia sesión SSH de Ansible (viaja por wg1).
+# Limitación conocida: un cambio que AÑADA rutas (nuevo AllowedIPs) pide `systemctl restart wg-quick@wg1` a mano.
+- name: Sincronizar pares de wg1
+  ansible.builtin.shell:
+    cmd: wg syncconf {{ hub_wg_interfaz }} <(wg-quick strip {{ hub_wg_interfaz }})
+    executable: /bin/bash
+  changed_when: true

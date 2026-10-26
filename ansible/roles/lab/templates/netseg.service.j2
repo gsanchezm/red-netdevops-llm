@@ -1,0 +1,16 @@
+# Gestionado por Ansible (roles/lab). Carga la política entre segmentos antes que Docker (docs/03-laboratorio.md §5).
+# scripts/lab.sh también la carga y la descarga; ambas cargas son idempotentes (el archivo borra y recrea la tabla).
+[Unit]
+Description=Política entre segmentos del laboratorio (nftables, tabla inet netseg)
+Documentation=https://github.com/gsanchezm/red-netdevops-llm/blob/main/docs/02-diseno.md
+After=local-fs.target
+Before=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/redes-lab/netseg.nft
+ExecStop=-/usr/sbin/nft delete table inet netseg
+
+[Install]
+WantedBy=multi-user.target

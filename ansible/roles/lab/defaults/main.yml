@@ -1,0 +1,4 @@
+---
+# true: además de la política, levanta la topología segmentada con scripts/lab.sh (lo usa el despliegue de CI).
+lab_levantar: false
+lab_repo: "{{ playbook_dir }}/.."

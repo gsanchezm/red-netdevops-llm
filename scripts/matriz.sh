@@ -45,7 +45,7 @@ sondear() {
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 declare -a IDS CELDAS ORIG DEST IPS PUERTOS ESPERADOS
 n=0
-while IFS='|' read -r id celda origen destino puerto e_seg e_pla nota; do
+while IFS='|' read -r id celda origen destino puerto e_seg e_pla _nota; do
   id="$(recortar "$id")"
   [[ -z $id || $id == \#* ]] && continue
   esperado="$(recortar "$e_seg")"; [[ $TOPO == plana ]] && esperado="$(recortar "$e_pla")"

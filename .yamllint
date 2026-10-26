@@ -1,0 +1,24 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 160
+    level: warning
+  # El repositorio usa mapas en línea con un espacio ({ clave: valor }), p. ej. en los compose.
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable
+  document-start:
+    level: warning
+  # `on:` de los workflows de GitHub no es un booleano.
+  truthy:
+    check-keys: false
+
+ignore: |
+  evidencia/
+  lab/ca/
+  lab/hermes/data/

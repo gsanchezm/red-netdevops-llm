@@ -1,0 +1,14 @@
+---
+# Despliegue completo. Simulación (no cambia nada):  scripts/desplegar.sh simular
+# Aplicación:                                         scripts/desplegar.sh aplicar
+- name: Droplet concentrador WireGuard
+  hosts: hub
+  become: true
+  roles:
+    - hub
+
+- name: Laboratorio en la Dell (WSL)
+  hosts: lab
+  become: true
+  roles:
+    - lab

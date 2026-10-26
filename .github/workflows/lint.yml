@@ -1,0 +1,50 @@
+---
+# CI: valida todo lo versionado en una máquina de GitHub (no necesita acceso al laboratorio ni al droplet).
+name: lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Linters y comprobaciones
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Instalar herramientas
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends ansible-core ansible-lint yamllint shellcheck nftables
+
+      - name: yamllint
+        run: yamllint .
+
+      - name: ansible-lint
+        run: ansible-lint ansible/
+
+      - name: Sintaxis de los playbooks
+        run: cd ansible && ansible-playbook site.yml --syntax-check -e @vars.example.yml
+
+      - name: shellcheck
+        run: shellcheck --severity=warning scripts/*.sh scripts/wsl/*.sh droplet/*.sh
+
+      - name: Reglas nftables válidas (laboratorio y droplet)
+        run: |
+          sudo nft -c -f lab/nftables/netseg.nft
+          sudo nft -c -f droplet/hub.nft
+
+      - name: Compose válido
+        run: |
+          docker compose -f lab/compose.plana.yml config -q
+          docker compose -f lab/compose.segmentada.yml config -q
+
+      - name: Sin IP reales ni llaves en el repositorio
+        run: |
+          scripts/escanear-secretos.sh --probar
+          scripts/escanear-secretos.sh

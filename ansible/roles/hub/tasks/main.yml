@@ -1,0 +1,92 @@
+---
+# Concentrador WireGuard del droplet (D10, D12). Replica lo que se hizo a mano en el Día 4.
+- name: Comprobar que los pares vienen del archivo de variables externo
+  ansible.builtin.assert:
+    that:
+      - hub_pares | length > 0
+      - hub_pares | map(attribute='clave_publica') | map('regex_search', '^[A-Za-z0-9+/]{43}=$') | select('none') | list | length == 0
+    fail_msg: >-
+      Faltan los pares de wg1 o alguna clave pública no es base64 de 32 bytes.
+      Pasa -e @~/.config/redes-lab/vars.yml (modelo: ansible/vars.example.yml).
+    quiet: true
+
+- name: Paquetes del concentrador (WireGuard y nftables)
+  ansible.builtin.apt:
+    name:
+      - wireguard-tools
+      - nftables
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Nombre del sistema
+  ansible.builtin.hostname:
+    name: "{{ hub_hostname }}"
+
+- name: Reenvío IP (el droplet reenvía entre pares de wg1)
+  ansible.builtin.copy:
+    content: "net.ipv4.ip_forward = 1\n"
+    dest: /etc/sysctl.d/99-hub.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Aplicar sysctl del concentrador
+
+- name: Directorio de WireGuard
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Llave privada de wg1 (se genera una sola vez en el servidor y nunca sale de él)
+  ansible.builtin.shell:
+    cmd: umask 077 && wg genkey > /etc/wireguard/{{ hub_wg_interfaz }}.key
+    creates: /etc/wireguard/{{ hub_wg_interfaz }}.key
+  no_log: true
+
+- name: Leer la llave privada solo para armar la configuración
+  ansible.builtin.slurp:
+    src: /etc/wireguard/{{ hub_wg_interfaz }}.key
+  register: hub_wg_privada
+  no_log: true
+
+- name: Configuración de wg1 con los pares
+  ansible.builtin.template:
+    src: wg1.conf.j2
+    dest: /etc/wireguard/{{ hub_wg_interfaz }}.conf
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Sincronizar pares de wg1
+
+- name: Política del concentrador (droplet/hub.nft), validada antes de instalarla
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../droplet/hub.nft"
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/nft -c -f %s
+  notify: Cargar nftables del concentrador
+
+- name: Servicios nftables y wg1 activos y habilitados al arrancar
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - nftables
+    - wg-quick@{{ hub_wg_interfaz }}
+
+- name: Clave pública del droplet (la que van a necesitar los pares)
+  ansible.builtin.command: wg show {{ hub_wg_interfaz }} public-key
+  register: hub_clave_publica
+  changed_when: false
+  check_mode: false
+
+- name: Mostrar la clave pública del droplet
+  ansible.builtin.debug:
+    msg: "wg1 del droplet: {{ hub_clave_publica.stdout }}"

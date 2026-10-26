@@ -1,0 +1,10 @@
+---
+profile: moderate
+# Solo se revisa el código de Ansible; el resto del repositorio tiene sus propios linters en la CI.
+exclude_paths:
+  - .github/
+  - docs/
+  - droplet/
+  - evidencia/
+  - lab/
+  - scripts/

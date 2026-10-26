@@ -1,0 +1,38 @@
+# Rol lab con Ansible · 2026-10-25 19:08:30 -0600
+
+## 1) Primera aplicación (scripts/desplegar.sh aplicar lab)
+TASK [Gathering Facts] 
+ok: [lab-dell]
+TASK [lab : Paquetes del host del laboratorio] 
+ok: [lab-dell]
+TASK [lab : Reenvío IP persistente (el kernel hace de router entre segmentos)] 
+ok: [lab-dell]
+TASK [lab : Directorio de la política] 
+changed: [lab-dell]
+TASK [lab : Política entre segmentos (lab/nftables/netseg.nft), validada antes de instalarla] 
+changed: [lab-dell]
+TASK [lab : Unidad de systemd que carga netseg antes que Docker] 
+changed: [lab-dell]
+TASK [lab : Aplicar la unidad antes de habilitarla] 
+changed: [lab-dell]
+ok: [lab-dell]
+TASK [lab : Servicio netseg activo y habilitado al arrancar] 
+changed: [lab-dell]
+TASK [lab : Levantar la topología segmentada (scripts/lab.sh)] 
+TASK [lab : Leer la tabla netseg cargada] 
+ok: [lab-dell]
+TASK [lab : Comprobar que la política es de denegación por defecto] 
+ok: [lab-dell]
+PLAY RECAP 
+lab-dell                   : ok=11   changed=5    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+## 2) Segunda aplicación inmediata: idempotencia (debe dar changed=0)
+PLAY RECAP *********************************************************************
+lab-dell                   : ok=9    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+## 3) Estado resultante
+netseg.service: active
+habilitado al arrancar: enabled
+tabla cargada: table inet netseg
+  -rw-r--r-- 1 root root 4581 Oct 25 19:08 netseg.nft
+orden: netseg antes que docker -> shutdown.target multi-user.target docker.service

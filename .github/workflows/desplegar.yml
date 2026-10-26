@@ -1,0 +1,38 @@
+---
+# Despliegue manual con aprobación (D7, D8). Corre en el runner autohospedado de la Dell (WSL): solo abre
+# conexiones salientes hacia GitHub y llega al droplet por la VPN. Aplicar exige la aprobación de un revisor
+# del Environment `produccion-lab`; primero siempre se simula.
+name: desplegar
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desplegar
+  cancel-in-progress: false
+
+jobs:
+  simular:
+    name: Simulación (--check --diff, no cambia nada)
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, redes-lab]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Simular el despliegue
+        run: scripts/desplegar.sh simular
+
+  aplicar:
+    name: Aplicar (requiere aprobación)
+    needs: simular
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, redes-lab]
+    environment: produccion-lab
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Aplicar el despliegue
+        run: scripts/desplegar.sh aplicar
+      - name: Matriz de alcanzabilidad tras el despliegue
+        run: scripts/matriz.sh segmentada "$RUNNER_TEMP/matriz-tras-despliegue.md"

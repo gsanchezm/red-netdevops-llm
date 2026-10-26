@@ -1,0 +1,5 @@
+---
+hub_hostname: redes-lab-hub
+hub_wg_interfaz: wg1
+hub_wg_direccion: 10.10.51.1/24
+hub_wg_puerto: 51820

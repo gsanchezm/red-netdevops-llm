@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  author: gsanchezm
+  description: "Host del laboratorio (WSL2): política nftables entre segmentos como servicio de systemd"
+  license: MIT
+  min_ansible_version: "2.16"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+  galaxy_tags: []
+dependencies: []
