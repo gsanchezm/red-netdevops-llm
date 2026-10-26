@@ -5,6 +5,7 @@
 | Archivo | Qué demuestra | Para el reporte |
 |---|---|---|
 | `red-plana.md`, `red-segmentada.md` | ICMP (50 pings) y `iperf3` (10 s × 3) en cada topología; en la segmentada, WireGuard con y sin túnel | Costo de segmentar (−2.2 % TCP) y de cifrar (0.68 vs 31 Gbit/s, +0.45 ms) |
+| `wg1-iperf3.md` | Rendimiento real por `wg1` (Dell ↔ droplet, por internet): 124.5 Mbit/s de subida, 241.3 de bajada, 69.9 ms | Capacidad real del acceso remoto: la limita la subida de la casa, no WireGuard |
 | `latencia-segmentada.md` | Latencia de la API (TCP, TLS, 1.er token, total, tokens/s) por cada ruta, incluida la VPN emulada | La VPN añade ≈ 2 % al total: domina la generación del modelo |
 | `modelo-4b-64k.txt` | `qwen3.5:4b` a 64 K con caché f16: aguja recuperada, 34 % CPU / 66 % GPU | Por qué el modelo del laboratorio sigue siendo el de 2 B |
 | `modelo-4b-64k-kv-q8.txt` | Lo mismo con caché `q8_0`: 77 % GPU, tampoco llega al 100 % | Límite de 6 GB de VRAM |

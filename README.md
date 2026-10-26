@@ -58,7 +58,8 @@ scripts/
   wg0-evidencia.sh, wg1-evidencia.sh   Evidencia de las VPN
   desplegar.sh        Ansible: lint, simular (--check --diff) y aplicar (Día 5)
   escanear-secretos.sh   Busca IP reales y llaves en lo versionado (el repositorio es público)
-  medir-red.sh        ICMP e iperf3, plana vs segmentada, y el costo de WireGuard (Día 6)
+  medir-red.sh, medir-wg1.sh   ICMP e iperf3: plana vs segmentada, costo de WireGuard y rendimiento real por wg1 (Día 6)
+  verificar-hub.sh    Comprueba que el droplet sigue sano tras un despliegue (Día 5)
   snapshot.sh, hermes-evaluar.sh, proponer-pr.sh   Hermes: leer un snapshot, evaluar su calidad y proponer un PR (Día 6)
 ```
 

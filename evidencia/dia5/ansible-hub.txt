@@ -1,0 +1,73 @@
+# Rol hub con Ansible contra el droplet · 2026-10-25 23:10:55 -0600
+(se conecta como deploy por la VPN desde la Dell; claves recortadas)
+
+## 1) Simulación (--check --diff): qué cambiaría; no cambia nada
+TASK [Gathering Facts] 
+ok: [redes-lab-hub]
+TASK [hub : Comprobar que los pares vienen del archivo de variables externo] 
+ok: [redes-lab-hub]
+TASK [hub : Paquetes del concentrador (WireGuard y nftables)] 
+ok: [redes-lab-hub]
+TASK [hub : Nombre del sistema] 
+changed: [redes-lab-hub]
+TASK [hub : Reenvío IP (el droplet reenvía entre pares de wg1)] 
+ok: [redes-lab-hub]
+TASK [hub : Directorio de WireGuard] 
+ok: [redes-lab-hub]
+TASK [hub : Llave privada de wg1 (se genera una sola vez en el servidor y nunca sale de él)] 
+ok: [redes-lab-hub]
+TASK [hub : Leer la llave privada solo para armar la configuración] 
+ok: [redes-lab-hub]
+TASK [hub : Configuración de wg1 con los pares] 
+changed: [redes-lab-hub]
+TASK [hub : Política del concentrador (droplet/hub.nft), validada antes de instalarla] 
+ok: [redes-lab-hub]
+TASK [hub : Servicios nftables y wg1 activos y habilitados al arrancar] 
+changed: [redes-lab-hub] => (item=nftables)
+ok: [redes-lab-hub] => (item=wg-quick@wg1)
+TASK [hub : Clave pública del droplet (la que van a necesitar los pares)] 
+ok: [redes-lab-hub]
+TASK [hub : Mostrar la clave pública del droplet] 
+ok: [redes-lab-hub] => 
+skipping: [redes-lab-hub]
+skipping: no hosts matched
+PLAY RECAP 
+redes-lab-hub              : ok=13   changed=3    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+## 2) Aplicación
+TASK [Gathering Facts] 
+ok: [redes-lab-hub]
+TASK [hub : Comprobar que los pares vienen del archivo de variables externo] 
+ok: [redes-lab-hub]
+TASK [hub : Paquetes del concentrador (WireGuard y nftables)] 
+ok: [redes-lab-hub]
+TASK [hub : Nombre del sistema] 
+changed: [redes-lab-hub]
+TASK [hub : Reenvío IP (el droplet reenvía entre pares de wg1)] 
+ok: [redes-lab-hub]
+TASK [hub : Directorio de WireGuard] 
+ok: [redes-lab-hub]
+TASK [hub : Llave privada de wg1 (se genera una sola vez en el servidor y nunca sale de él)] 
+ok: [redes-lab-hub]
+TASK [hub : Leer la llave privada solo para armar la configuración] 
+ok: [redes-lab-hub]
+TASK [hub : Configuración de wg1 con los pares] 
+changed: [redes-lab-hub]
+TASK [hub : Política del concentrador (droplet/hub.nft), validada antes de instalarla] 
+ok: [redes-lab-hub]
+TASK [hub : Servicios nftables y wg1 activos y habilitados al arrancar] 
+changed: [redes-lab-hub] => (item=nftables)
+ok: [redes-lab-hub] => (item=wg-quick@wg1)
+TASK [hub : Clave pública del droplet (la que van a necesitar los pares)] 
+ok: [redes-lab-hub]
+TASK [hub : Mostrar la clave pública del droplet] 
+ok: [redes-lab-hub] => 
+RUNNING HANDLER [hub : Sincronizar pares de wg1] 
+changed: [redes-lab-hub]
+skipping: no hosts matched
+PLAY RECAP 
+redes-lab-hub              : ok=14   changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+## 3) Segunda aplicación inmediata: idempotencia (debe dar changed=0)
+PLAY RECAP *********************************************************************
+redes-lab-hub              : ok=13   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   

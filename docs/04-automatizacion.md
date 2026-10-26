@@ -4,10 +4,10 @@ La política de red vive en Git y los cambios llegan a los equipos por un canal 
 Aquí se codifica con Ansible lo que en el Día 4 se hizo a mano, y se valida con una CI en GitHub Actions
 (D7 y D8 de `02-diseno.md`).
 
-> **Estado.** El rol `lab` (la Dell) está **aplicado y probado**: 5 cambios la primera vez, 0 la segunda
-> (`evidencia/dia5/ansible-lab.txt`). El rol `hub` (el droplet) está **escrito y pasa los linters, pero no se ha
-> ejecutado contra el droplet**: falta crear el usuario `deploy` (§6). El runner y el Environment de GitHub
-> tampoco están registrados todavía (§5).
+> **Estado.** Los dos roles están **aplicados y son idempotentes**: `lab` (la Dell) hizo 5 cambios la primera vez y 0
+> la segunda (`evidencia/dia5/ansible-lab.txt`); `hub` (el droplet) hizo 4 y luego 0 (`evidencia/dia5/ansible-hub.txt`).
+> La CI de GitHub está en verde, el *runner* autohospedado está en línea, el Environment `produccion-lab` exige
+> aprobación y la rama `main` está protegida (§5). Falta ejercitar el despliegue manual de punta a punta (§5).
 
 ## 1. Estructura
 
@@ -85,37 +85,72 @@ móvil) y el permiso del token es solo lectura.
 
 `desplegar.yml` es **manual** (`workflow_dispatch`) y solo desde `main`. Corre en un *runner* autohospedado en la
 Dell (D8): solo abre conexiones salientes hacia GitHub y llega al droplet por la VPN. Tiene dos trabajos: primero
-**simula** (`--check --diff`) y, solo si alguien con permiso aprueba el Environment `produccion-lab`, **aplica** y
-vuelve a correr la matriz de alcanzabilidad.
+**simula** (`--check --diff`) y, solo si el revisor del Environment `produccion-lab` lo aprueba, **aplica** y
+comprueba con `scripts/verificar-hub.sh` que el droplet sigue sano (servicios, políticas `drop`, `ip_forward` y los
+pares de `wg1`).
 
-**Pendiente (requiere decisiones del dueño del repositorio):** crear el Environment `produccion-lab` con revisor
-obligatorio, registrar el runner (descarga el programa del *runner* de GitHub y lo deja corriendo como servicio) y,
-si se quiere, proteger la rama `main` (D7).
+**Configuración de GitHub** (aplicada con la API de `gh`; la repetible está en este archivo, no en capturas):
 
-## 6. Acceso de despliegue al droplet (pendiente)
+| Qué | Valor | Por qué |
+|---|---|---|
+| Environment `produccion-lab` | Revisor obligatorio: el dueño del repositorio; solo despliega desde `main` | La aprobación manual de D8 |
+| Protección de `main` | Se exige *pull request* y el chequeo `Linters y comprobaciones`; **0 aprobaciones** y los administradores **no** quedan obligados | Un dueño único no puede aprobar su propio PR; la compuerta humana está en el Environment. Es una **decisión mía** que se puede endurecer activando "incluir a los administradores" |
+| Permisos de los workflows | Solo lectura por defecto; no pueden aprobar PR | Mínimo privilegio |
+| Colaboradores externos | Sus workflows requieren aprobación (`all_external_contributors`) | El repositorio es público |
+
+**El runner.** Programa oficial `actions-runner` v2.338.1 (217.4 MB), descargado de `github.com/actions/runner` y
+verificado contra el SHA-256 publicado antes de instalarlo. Corre como **servicio de systemd con el usuario
+`gsanchezm`, nunca como root**, con la etiqueta `redes-lab`. GitHub desaconseja los runners autohospedados en
+repositorios públicos porque un *pull request* de un tercero podría ejecutar código en la máquina; aquí se mitiga
+con: `desplegar.yml` solo se dispara a mano (no hay `pull_request` sobre el runner), solo corre desde `main`, aplicar
+exige la aprobación del Environment, y los workflows de colaboradores externos requieren aprobación. Aun así,
+el usuario `gsanchezm` pertenece al grupo `docker`, que equivale a root en la VM de WSL: el runner **no** debe
+registrarse en otros repositorios.
+
+**Solo se despliega el droplet.** El rol `lab` modifica la propia Dell como root; delegarlo al runner significaría
+darle root sobre el equipo donde vive. Ese rol se aplica a mano: `sudo scripts/desplegar.sh aplicar lab`.
+
+## 6. Acceso de despliegue al droplet
 
 Ansible y la CI llegan al droplet desde la Dell por SSH a `10.10.51.1` con una **llave de despliegue exclusiva,
-sin frase** (`~/.ssh/id_ed25519_redes_deploy`, ya generada en Ubuntu), para poder revocarla sin tocar la llave
-personal. Falta lo que concede acceso privilegiado y por eso lo ejecuta una persona:
+sin frase** (`~/.ssh/id_ed25519_redes_deploy`, generada en Ubuntu), para poder revocarla sin tocar la llave
+personal. Como concede acceso privilegiado, se hizo con revisión humana y en pasos separados (25-oct-2026):
 
-1. En el droplet: `droplet/bootstrap-deploy.sh` crea el usuario `deploy`, autoriza esa llave **solo desde la Dell**
-   (`from="10.10.51.2"`, sin reenvíos) y le da `sudo` sin contraseña.
-2. En `droplet/hub.nft`: el SSH por la VPN pasa de aceptar solo la PC de administración (`10.10.51.4`) a aceptar
-   también la Dell (`10.10.51.2`). El cambio ya está escrito en el repositorio y se aplica con un reversor
-   automático, como en el Día 4.
-3. Verificar la huella del host del droplet desde WSL contra la que se obtiene por el túnel de administración,
-   antes de agregarla a `known_hosts`.
+1. `droplet/bootstrap-deploy.sh`, ejecutado desde la PC de administración por la VPN, crea el usuario `deploy` sin
+   contraseña (queda bloqueada), autoriza esa llave **solo desde la Dell** (`from="10.10.51.2"`, sin reenvíos) y le da
+   `sudo` sin contraseña (Ansible necesita ejecutar módulos como root).
+2. `droplet/hub.nft` ahora acepta el SSH por la VPN de la PC de administración (`10.10.51.4`) **y de la Dell**
+   (`10.10.51.2`), nunca de internet. Se cargó con el reversor automático de 150 s y se probó una conexión nueva antes
+   de cancelarlo.
+3. La huella del host se **verificó antes de confiar en ella**: la que ve WSL por `wg1` (`SHA256:Ff7FZBk2…aibDE`) coincide
+   con la que se obtuvo por el túnel de administración, y solo entonces se agregó a `known_hosts`. Ansible usa
+   `StrictHostKeyChecking=yes`.
+
+Un intento anterior de hacer los tres pasos en un solo comando fue **bloqueado por el clasificador de seguridad de
+Claude Code**, sin dar ninguna explicación (mi interpretación: crear una cuenta con `sudo` sin contraseña, autorizar
+su llave y abrir el firewall en un solo comando se parece al patrón de una puerta trasera). No se rodeó: se esperó la
+autorización explícita del dueño y entonces se hizo en pasos legibles y separados. Una persona debe seguir decidiendo este paso; el script `bootstrap-deploy.sh` está en el repositorio para
+poder revisarlo y revocarlo (`userdel -r deploy && rm /etc/sudoers.d/90-deploy`).
 
 ## 7. Resultados y hallazgos
 
 | Qué | Resultado |
 |---|---|
-| `yamllint`, `ansible-lint`, sintaxis, `shellcheck`, `nft -c` en un espacio de red limpio, `compose config`, escáner | Pasan en local con los mismos comandos que la CI |
+| CI de GitHub (`lint.yml`) | **En verde** tras dos corridas rojas (abajo); incluye `nft -c` y `compose config` en una máquina limpia |
 | Rol `lab` aplicado | 5 cambios la primera vez; **0 la segunda** (idempotente) |
 | `netseg.service` | Activo, habilitado y ordenado antes de `docker.service` |
+| Rol `hub` en el droplet real | Simulación: 3 cambios; aplicación: 4 (nombre del sistema, `wg1.conf`, `nftables` activado y sincronización de pares); **0 la segunda**. El droplet sigue sano: 3 pares con *handshake*, firewall `drop`, `ip_forward=1` |
+| Runner | En línea (`dell-wsl`), como `gsanchezm`, SHA-256 verificado |
 
 Hallazgos de esta etapa: (1) el escáner de secretos daba un **falso verde** (§3); (2) un YAML inválido en un
 `meta/main.yml` (`: ` dentro de un texto sin comillas) que rompía a Ansible y a `ansible-lint` a la vez; (3) cuatro
 avisos reales de `shellcheck` en scripts de días anteriores (una variable sin usar, un arreglo asignado a una
 cadena y una sustitución sin comillas), ya corregidos; (4) `yamllint` con su configuración por defecto rechazaba
 el estilo `{ clave: valor }` que usan los compose; se configuró en `.yamllint`.
+
+**Las dos corridas rojas de la CI**, que en local pasaban: (a) la imagen de GitHub trae su propio Ansible (2.21) y
+chocaba con el de `apt` (2.16): `ansible-lint` abortaba con "versions do not match"; se instalan en un entorno virtual
+con versiones fijadas; (b) el `ansible-lint` de PyPI (la misma versión 6.17.2) no reconoce `noble` en el esquema de
+`meta`, mientras que el paquete de Ubuntu lo trae parcheado; se usó `all`. Lección: **la CI debe reproducirse en
+local con el mismo entorno que usa GitHub** (un entorno virtual con las mismas versiones), no con lo que casualmente
+hay instalado; así se comprobó la segunda corrección antes de subirla.
