@@ -22,7 +22,7 @@ networks:
       # IP de un contenedor por otra interfaz (capa raw): aquí se exceptúa wg0. Su cadena DOCKER también
       # lo descarta; esa excepción la pone scripts/wg0.sh en DOCKER-USER. netseg decide qué pasa de verdad.
       # (No sirve gateway_mode "routed": quita el NAT de salida y Trabajo perdería internet.)
-      com.docker.network.bridge.trusted_host_interfaces: wg0
+      com.docker.network.bridge.trusted_host_interfaces: wg0:wg1   # separador: dos puntos (comprobado)
     ipam:
       config:
         - subnet: 10.10.10.0/24

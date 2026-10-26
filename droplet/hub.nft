@@ -1,0 +1,48 @@
+#!/usr/sbin/nft -f
+# Concentrador WireGuard del droplet `redes-lab-hub` (docs/02-diseno.md §5, D10 y D12). El droplet no es
+# un servidor de aplicaciones: solo termina `wg1` y reenvía lo mínimo entre sus dos pares. Repite por
+# dentro la política del Cloud Firewall de DigitalOcean (que filtra por fuera) con denegación por defecto.
+#
+# Pares de wg1 (10.10.51.0/24):  droplet .1 · Dell .2 · celular .3
+# La Dell anuncia 10.10.10.5/32 (Caddy): el celular entra a https://10.10.10.5 y el droplet lo reenvía
+# al par de la Dell según su AllowedIPs, sin NAT (D12).
+#
+# Se instala como /etc/nftables.conf (el servicio `nftables` lo carga al arrancar).
+# Carga idempotente:  nft -f /etc/nftables.conf     Descarga:  nft delete table inet hub
+
+table inet hub
+delete table inet hub
+
+table inet hub {
+
+    # Tráfico dirigido al propio droplet.
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        ct state invalid drop
+        ct state established,related accept
+        iif lo accept
+        meta l4proto ipv6-icmp accept comment "descubrimiento de vecinos (solo hay IPv6 de enlace local)"
+        icmp type echo-request limit rate 5/second accept comment "ping (mediciones)"
+        udp sport 67 udp dport 68 accept comment "renovación DHCP"
+
+        udp dport 51820 accept comment "WireGuard (el Cloud Firewall lo abre a todo IPv4; no responde a lo no autenticado)"
+        iifname "wg1" tcp dport 22 accept comment "SSH por la VPN (destino final)"
+        tcp dport 22 accept comment "SSH desde internet: TEMPORAL; el Cloud Firewall lo limita a la IP de casa. Se quita al final"
+
+        limit rate 6/minute burst 10 packets log prefix "hub-input-drop: " level info
+    }
+
+    # Tráfico que atraviesa el droplet entre los pares de wg1.
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+
+        ct state invalid counter drop comment "paquetes fuera de estado"
+        ct state established,related counter accept comment "respuestas de flujos permitidos"
+
+        iifname "wg1" oifname "wg1" ip saddr 10.10.51.3 ip daddr 10.10.10.5 tcp dport 443 counter accept comment "celular -> Caddy :443 (reenviado a la Dell)"
+
+        limit rate 6/minute burst 10 packets log prefix "hub-forward-drop: " level info
+        counter drop comment "denegación por defecto"
+    }
+}

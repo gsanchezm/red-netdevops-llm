@@ -1,0 +1,63 @@
+# VPN real · wg1 · 2026-10-25 18:30:08 -0600
+
+## Dell (wg1, 10.10.51.2): conexión saliente hacia el droplet, keepalive de 25 s
+interface: wg1
+  public key: 4nGIQI…
+  private key: (hidden)
+  listening port: 46297
+
+peer: g5x/dR…
+  endpoint: 45.55.x.x:51820
+  allowed ips: 10.10.51.0/24
+  latest handshake: 14 seconds ago
+  transfer: 18.27 KiB received, 23.26 KiB sent
+  persistent keepalive: every 25 seconds
+
+## Latencia ICMP Dell -> droplet por wg1 (50 pings, por internet real)
+50 packets transmitted, 50 received, 0% packet loss, time 9827ms
+rtt min/avg/max/mdev = 68.717/70.206/77.486/1.172 ms
+
+## Solicitudes con origen 10.10.51.x que llegaron a Caddy (registro JSON de Caddy; sin NAT)
+  origen=10.10.51.3  GET /api/tags  estado=200  duración=7.9 ms  TLS 1.3  cliente=curl (prueba desde el droplet)
+  origen=10.10.51.3  GET /api/tags  estado=200  duración=3.6 ms  TLS 1.3  cliente=Safari en iPhone
+  origen=10.10.51.3  GET /favicon.ico  estado=404  duración=1.5 ms  TLS 1.3  cliente=Safari en iPhone
+  total de solicitudes con origen 10.10.51.x: 3
+
+## Capas de filtrado de la Dell para wg1 (contadores)
+netseg (forward):
+  iifname "wg1" oifname "br-trabajo" ip saddr 10.10.51.3 ip daddr 10.10.10.5 tcp dport 443 counter packets 2 bytes 124 accept comment "VPN real (celular) -> Caddy :443"
+  counter packets 18 bytes 1080 drop comment "denegación por defecto"
+Docker (DOCKER-USER):
+  27  4308 ACCEPT     6    --  wg1    br-trabajo  10.10.51.3           10.10.10.5           tcp dpt:443
+
+## Droplet (concentrador wg1, 10.10.51.1): ve a los dos pares a la vez
+interface: wg1
+  public key: g5x/dR…
+  private key: (hidden)
+  listening port: 51820
+
+peer: 4nGIQI…
+  endpoint: 189.203.x.x:20842
+  allowed ips: 10.10.51.2/32, 10.10.10.5/32
+  latest handshake: 27 seconds ago
+  transfer: 37.84 KiB received, 34.02 KiB sent
+
+peer: /XoWpv…
+  endpoint: 200.68.x.x:50556
+  allowed ips: 10.10.51.3/32
+  latest handshake: 1 minute, 18 seconds ago
+  transfer: 15.76 KiB received, 10.76 KiB sent
+
+## Rutas del droplet hacia los pares
+  10.10.10.5 scope link 
+  10.10.51.0/24 proto kernel scope link src 10.10.51.1 
+
+## Droplet: firewall nftables (tabla inet hub), cadena forward con contadores
+  ct state invalid counter packets 0 bytes 0 drop comment "paquetes fuera de estado"
+  ct state established,related counter packets 66 bytes 10906 accept comment "respuestas de flujos permitidos"
+  iifname "wg1" oifname "wg1" ip saddr 10.10.51.3 ip daddr 10.10.10.5 tcp dport 443 counter packets 36 bytes 2304 accept comment "celular -> Caddy :443 (reenviado a la Dell)"
+  counter packets 0 bytes 0 drop comment "denegación por defecto"
+
+## Droplet: sistema
+  Ubuntu 24.04.5 LTS · kernel 6.8.0-142-generic · wireguard-tools v1.0.20210914 · ip_forward=1
+  servicio wg-quick@wg1: active / enabled · nftables: enabled

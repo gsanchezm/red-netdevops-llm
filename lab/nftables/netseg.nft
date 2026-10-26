@@ -17,7 +17,7 @@
 # Carga idempotente:  nft -f lab/nftables/netseg.nft     Descarga:  nft delete table inet netseg
 
 define WAN = "eth0"        # interfaz de salida del host ("internet" real)
-define LAB = { "br-trabajo", "br-ia", "br-invitados", "br-admin", "br-inet", "wg0" }
+define LAB = { "br-trabajo", "br-ia", "br-invitados", "br-admin", "br-inet", "wg0", "wg1" }
 
 table inet netseg
 delete table inet netseg
@@ -43,6 +43,10 @@ table inet netseg {
         # VPN emulada (wg0): el cliente solo llega a Caddy :443 por su IP real (la VPN anuncia 10.10.10.5/32,
         # sin NAT; el certificado de Caddy cubre esa IP). Docker deja pasar wg0 (trusted_host_interfaces).
         iifname "wg0" oifname "br-trabajo" ip daddr 10.10.10.5 tcp dport 443 counter accept comment "VPN emulada -> Caddy :443"
+
+        # VPN real (wg1, vía droplet): solo el celular (10.10.51.3) llega a Caddy :443. El droplet ya filtra lo
+        # mismo por fuera; aquí se repite porque la Dell no debe confiar en el concentrador.
+        iifname "wg1" oifname "br-trabajo" ip saddr 10.10.51.3 ip daddr 10.10.10.5 tcp dport 443 counter accept comment "VPN real (celular) -> Caddy :443"
 
         # Salida a internet por segmento (IA e Internet emulado no tienen).
         iifname "br-trabajo" ip saddr 10.10.10.5 oifname $WAN counter drop comment "Caddy no necesita salida a internet (D5)"

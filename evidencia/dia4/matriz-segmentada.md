@@ -1,6 +1,6 @@
 # Matriz de alcanzabilidad · topología segmentada
 
-Generada 2026-10-24 19:33:46 -0600 con `scripts/matriz.sh segmentada` (política: docs/02-diseno.md §5).
+Generada 2026-10-25 18:29:26 -0600 con `scripts/matriz.sh segmentada` (política: docs/02-diseno.md §5).
 
 | Caso | Celda de §5 | Origen → destino:puerto | Esperado | Observado | Resultado |
 |---|---|---|---|---|---|
@@ -39,7 +39,7 @@ Generada 2026-10-24 19:33:46 -0600 con `scripts/matriz.sh segmentada` (política
 | E05 | Internet→Invitados | cliente-remoto → iot-sensor (10.10.30.10):1883 | bloquear | sin-respuesta | ✅ OK |
 | E06 | Internet→Internet | cliente-remoto → 1.1.1.1 (1.1.1.1):443 | bloquear | sin-ruta | ✅ OK |
 | E07 | Internet→Host | cliente-remoto → 203.0.113.1 (203.0.113.1):443 | bloquear | sin-respuesta | ✅ OK |
-| V01 | VPN→Caddy | cliente-remoto → caddy@trabajo (10.10.10.5):443 | permitir | abierto | ✅ OK |
+| V01 | VPN→Caddy | cliente-remoto → 10.10.10.5 (10.10.10.5):443 | permitir | abierto | ✅ OK |
 | V02 | VPN→Caddy (IA) | cliente-remoto → caddy@ia (10.10.20.5):443 | bloquear | sin-respuesta | ✅ OK |
 
 - Admin resuelve y abre https://github.com (esperado `200`): obtenido `200` · ✅ OK

@@ -8,7 +8,7 @@ concentrador WireGuard real (Días 4 y 5). Cada día deja un entregable verifica
 | 1 | 2.5 | Repo Git · documento de la red real con inventario y línea base · diseño objetivo (segmentos, direccionamiento, matriz de flujos, diagramas) | ✅ |
 | 2 | 2.5 | Ubuntu 24.04 en WSL2 con Docker Engine y GPU · compose de las topologías plana y segmentada · nftables · script de matriz de alcanzabilidad (ver `03-laboratorio.md`) | ✅ |
 | 3 | 3 | Ollama con modelo pequeño (100 % GPU con contexto 64 K) · Hermes en Admin · Caddy con TLS interno · segmento IA sin salida · latencia de la API (ver `03-laboratorio.md` §7; el modelo cambió de `qwen2.5:3b` a `qwen3.5:2b`, D9) | ✅ |
-| 4 | 3 | WireGuard: servidor en el host + cliente remoto emulado · droplet dedicado como concentrador (región elegida por ping) con el celular real · reglas VPN → Caddy :443 · evidencia | 🟡 `wg0` emulado listo (`03-laboratorio.md` §8); falta `wg1` con el droplet y el celular |
+| 4 | 3 | WireGuard: servidor en el host + cliente remoto emulado · droplet dedicado como concentrador (región elegida por ping) con el celular real · reglas VPN → Caddy :443 · evidencia | 🟡 `wg0` emulado y `wg1` real (celular por 5G → Caddy) funcionando (`03-laboratorio.md` §8); falta dejar el SSH del droplet solo por `wg1` |
 | 5 | 3.5 | Ansible en roles con dos hosts (lab y droplet) · GitHub Actions (lint + despliegue con aprobación manual) | ⬜ |
 | 6 | 2.5 | Hermes lee snapshots y propone un PR (nunca aplica) · mediciones finales plana vs segmentada | ⬜ |
 | 7 | 3 | Documento de la materia (10–15 páginas, APA 7) | ⬜ |

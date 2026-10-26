@@ -256,7 +256,7 @@ el margen mínimo de commit de Windows fue de **3.2 GB** (sin el tope había lle
 deshacerlo basta borrar el archivo y ejecutar `wsl --shutdown`. No se fijó `vmIdleTimeout`: sin
 sesiones abiertas WSL sigue apagando la VM, lo cual conviene mientras el laboratorio no se usa.
 
-## 8. VPN emulada: `wg0` y `cliente-remoto` (Día 4)
+## 8. VPN emulada y VPN real: `wg0` y `wg1` (Día 4)
 
 `scripts/lab.sh segmentada` levanta ahora la VPN completa: carga `netseg`, crea `wg0` en el host
 (`scripts/wg0.sh servidor`), levanta la topología y, al final, el cliente (`wg0.sh cliente`).
@@ -331,3 +331,38 @@ Para que el servidor esté disponible mientras se prueba hay que mantener viva l
 | Droplet, par de la Dell | `AllowedIPs = 10.10.51.2/32, 10.10.10.5/32` (si no, el droplet no sabe reenviar hacia Caddy ni acepta sus respuestas) |
 | Celular | `AllowedIPs` con `10.10.51.0/24` y `10.10.10.5/32`; destino `https://10.10.10.5`; instalar el certificado raíz de la CA interna |
 | Dell, par del droplet | `AllowedIPs = 10.10.51.0/24` (las respuestas de Caddy al `10.10.51.3` vuelven por `wg1`) |
+
+### 8.5 VPN real: resultados (25-oct-2026, `evidencia/dia4/wg1-real.txt`)
+
+Implementación: `scripts/wg1.sh` (Dell) y `droplet/hub.nft` + `wg-quick@wg1` (droplet, Ubuntu 24.04.5,
+512 MB). Las llaves viven solo en `lab/wireguard/wg1.conf` (Dell) y `/etc/wireguard/` (droplet), con IP
+y claves ocultas en la evidencia. La guía del celular es `guia-celular-wireguard.md`.
+
+| Prueba | Resultado |
+|---|---|
+| Dell ↔ droplet por `wg1` | Handshake inmediato; 50 pings, 0 % de pérdida, **69.6–70.2 ms** de media (mín. 67.9, máx. 77.5): coincide con los 69.9 ms medidos al elegir la región |
+| Conexión saliente | El droplet ve a la Dell llegar desde la IP pública de la casa: atraviesa el doble NAT con un *keepalive* de 25 s, sin reenviar puertos ni tocar el router |
+| iPhone por **5G** → `https://10.10.10.5/api/tags` | HTTP 200 con la lista de modelos (`celular-api-tags.png`), sin avisos de certificado; TLS 1.3; Caddy lo atendió en 3.6 ms |
+| Origen visto por Caddy | `10.10.51.3`, la IP del celular en el túnel: sin NAT (D12), por lo que el registro identifica al cliente real |
+| Filtrado | Droplet: 36 paquetes aceptados celular → Caddy y 0 descartes; Dell: la regla `wg1` de `netseg` y la de `DOCKER-USER` cuentan los mismos flujos. El contador "denegación por defecto" de la Dell incluye los bloqueos de la matriz, no solo `wg1` |
+| Matriz con `wg0` y `wg1` cargados | 44 casos, 0 fallas (`V01` ahora usa la IP literal `10.10.10.5`) |
+
+Dos aclaraciones sobre la evidencia: (1) de las dos solicitudes `GET /api/tags` registradas, una es una
+**prueba mía desde el droplet** (`curl -k` con `10.10.51.3` agregada un momento a `wg1`; el registro la
+distingue por su *User-Agent*) y la otra es la del iPhone, con su `favicon.ico`; (2) el celular no tiene
+una fila en la matriz de §4 porque no es un contenedor: su prueba es la captura y el registro de Caddy.
+
+**Lo que falló en la primera prueba.** Con el túnel arriba y el handshake correcto, Safari dijo "no pudo
+conectarse al servidor". Los contadores mostraron que los 21 SYN cruzaron el droplet, `netseg` y
+`DOCKER-USER`, pero la Dell respondía `ICMP host 10.10.10.5 unreachable`: en la tabla ARP de la Dell,
+`10.10.10.5` estaba en `FAILED`. **Caddy tenía `10.10.10.2`** en Trabajo (`IPAMConfig=null`: Docker no aplicó
+la IP estática en esa red; en `ia` y `admin` sí). Ocurrió una vez, en la primera corrida tras arrancar la VM, y
+no se repitió al recrear el laboratorio; **se desconoce la causa**. Como la matriz resuelve las IP con
+`docker inspect`, habría pasado en verde probando la IP equivocada. Por eso `lab.sh` ahora comprueba
+(`verificar_caddy`) que Caddy esté en `10.10.10.5` y se detiene si no, y `V01` prueba esa IP literal.
+
+Otra lección: en el droplet, `wg syncconf` **no** crea las rutas de `AllowedIPs` (`10.10.10.5/32`); hay que
+reiniciar `wg-quick@wg1`. Y en iOS el campo *Punto final* acepta `IP:puerto`, no `IP/puerto`.
+
+**Pendiente del Día 4:** dejar el SSH del droplet solo por `wg1` y quitar la regla SSH del Cloud Firewall
+(requiere un cliente WireGuard en la PC de administración). `iperf3` por los túneles va en el Día 6.

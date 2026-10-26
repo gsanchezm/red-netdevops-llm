@@ -52,6 +52,14 @@ esperar_salud() {
   [[ -z $mal ]] || echo "ADVERTENCIA: no saludables: $mal" >&2
 }
 
+# Las VPN (D12) y el certificado de Caddy dependen de que Caddy esté en 10.10.10.5. Una vez, en la primera
+# corrida tras arrancar la VM, Docker no aplicó la IP estática en Trabajo y le dio 10.10.10.2; la matriz no lo
+# habría notado porque resuelve las IP con `docker inspect`. Se detiene en vez de seguir con una IP equivocada.
+verificar_caddy() {
+  local ip; ip="$(docker inspect -f '{{range $n,$v := .NetworkSettings.Networks}}{{if eq $n "segmentada_trabajo"}}{{$v.IPAddress}}{{end}}{{end}}' caddy)"
+  [[ $ip == 10.10.10.5 ]] || { echo "ERROR: Caddy quedó en '$ip' en Trabajo y no en 10.10.10.5; repetir: scripts/lab.sh segmentada" >&2; exit 1; }
+}
+
 # Espera a que los servicios de prueba escuchen (los puertos salen de ESCUCHA).
 esperar() {
   esperar_salud
@@ -69,7 +77,7 @@ esperar() {
 
 case "${1:-}" in
   plana)
-    bajar segmentada; "$RAIZ/scripts/wg0.sh" abajo; nft_quitar; volumenes
+    bajar segmentada; "$RAIZ/scripts/wg0.sh" abajo; "$RAIZ/scripts/wg1.sh" abajo; nft_quitar; volumenes
     docker compose -f "$LAB/compose.plana.yml" up -d --build
     esperar ;;
   segmentada)
@@ -77,16 +85,19 @@ case "${1:-}" in
     construir segmentada
     nft_cargar                     # primero la política: la red nace ya filtrada
     "$RAIZ/scripts/wg0.sh" servidor   # wg0 y su excepción en Docker (DOCKER-USER) antes que la topología
+    "$RAIZ/scripts/wg1.sh" arriba     # VPN real hacia el droplet (se omite si no hay lab/wireguard/wg1.conf)
     docker compose -f "$LAB/compose.segmentada.yml" up -d --build
     esperar
+    verificar_caddy
     exportar_ca
     "$RAIZ/scripts/wg0.sh" cliente ;;
   nft-cargar) nft_cargar ;;
   nft-quitar) nft_quitar ;;
-  apagar)     bajar plana; bajar segmentada; "$RAIZ/scripts/wg0.sh" abajo; nft_quitar ;;
+  apagar)     bajar plana; bajar segmentada; "$RAIZ/scripts/wg0.sh" abajo; "$RAIZ/scripts/wg1.sh" abajo; nft_quitar ;;
   estado)
     docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Networks}}'
     $SUDO nft list tables
-    "$RAIZ/scripts/wg0.sh" estado ;;
+    "$RAIZ/scripts/wg0.sh" estado
+    echo "== wg1 (host) =="; "$RAIZ/scripts/wg1.sh" estado ;;
   *) sed -n '2,10p' "${BASH_SOURCE[0]}"; exit 2 ;;
 esac

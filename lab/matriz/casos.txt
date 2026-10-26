@@ -48,5 +48,5 @@ E04 | Internet→Admin      | cliente-remoto | colector      | 9100 | bloquear |
 E05 | Internet→Invitados  | cliente-remoto | iot-sensor    | 1883 | bloquear | - | por wg0, lo corta netseg
 E06 | Internet→Internet   | cliente-remoto | 1.1.1.1       | 443  | bloquear | - | el cliente remoto no tiene salida real
 E07 | Internet→Host       | cliente-remoto | 203.0.113.1   | 443  | bloquear | - | del host solo responde UDP 51820; el resto lo descarta `input` (sin-respuesta, no rechazado)
-V01 | VPN→Caddy           | cliente-remoto | caddy@trabajo | 443  | permitir | - | único flujo de la VPN: Caddy por su IP real (control positivo de E02–E05)
+V01 | VPN→Caddy           | cliente-remoto | 10.10.10.5    | 443  | permitir | - | único flujo de la VPN: Caddy por su IP real; IP literal (la que usan las VPN) y control positivo de E02–E05
 V02 | VPN→Caddy (IA)      | cliente-remoto | caddy@ia      | 443  | bloquear | - | la pata de Caddy en el segmento de IA no se alcanza
