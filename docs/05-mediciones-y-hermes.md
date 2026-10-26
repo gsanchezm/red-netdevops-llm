@@ -17,7 +17,9 @@ como la capacidad de un cable de 1 Gb/s.
 | TCP sin túnel (`cliente-remoto` → host, `br-inet`) | n/a | 31.01 ± 0.22 Gbit/s | Referencia del mismo origen y destino |
 | TCP con `wg0` (cifrado) | n/a | **0.68 ± 0.01 Gbit/s** | **−97.8 %** frente a la referencia |
 | ICMP sin túnel / con `wg0` | n/a | 0.117 ms / 0.564 ms | **+0.45 ms** por cifrar y encapsular |
-| ICMP Dell → droplet por `wg1` (internet real) | n/a | 69.6–70.2 ms | Dominado por la distancia a Nueva York (`evidencia/dia4/wg1-real.txt`) |
+| ICMP Dell → droplet por `wg1` (internet real) | n/a | 69.9 ms (69.2–75.8) | Dominado por la distancia a Nueva York |
+| TCP Dell → droplet por `wg1` (internet real), subida | n/a | **124.5 ± 13.2 Mbit/s** | Lo limita la subida del internet de la casa, no el cifrado |
+| TCP droplet → Dell por `wg1`, bajada | n/a | **241.3 ± 8.0 Mbit/s** | Idem para la bajada |
 
 **Lectura.** Segmentar con `nftables` casi no cuesta: en el mismo segmento el rendimiento baja 2 % y la latencia
 queda dentro del ruido. Lo que sí cuesta es **cifrar**: `wg0` rinde 0.68 Gbit/s frente a 31 sin túnel. Dos matices
@@ -25,13 +27,16 @@ para no exagerar esa cifra:
 
 - En la medición **el cliente y el servidor corren en la misma CPU**, así que se suma el cifrado y el descifrado
   de ambos extremos al mismo núcleo; con extremos en máquinas distintas el rendimiento por flujo sería mayor.
-- Aun así 0.68 Gbit/s **supera con mucho cualquier enlace doméstico**: en el acceso real por `wg1` el límite es la
-  subida del internet de la casa y los ~70 ms de ida y vuelta hasta el droplet, no el cifrado.
+- Aun así 0.68 Gbit/s **supera lo que da el acceso de esta casa**, y la medición real lo confirma: por `wg1`,
+  hasta el droplet, se miden **124.5 Mbit/s de subida y 241.3 Mbit/s de bajada** (`scripts/medir-wg1.sh`,
+  `evidencia/dia6/wg1-iperf3.md`), entre 2.8 y 5.5 veces menos que los 0.68 Gbit/s que el cifrado sostuvo en la
+  medición anterior: el límite es la subida del internet de la casa y los ~70 ms de ida y vuelta, no WireGuard. La asimetría (la subida es la mitad de la bajada) es
+  la típica de un acceso doméstico.
 
-**No medido (declarado):** el rendimiento `iperf3` por `wg1` hasta el droplet, que necesita `iperf3` y una regla
-temporal en el droplet; queda para cuando exista el acceso de despliegue (`04-automatizacion.md` §6).
-El script abre el puerto 5201 del host solo durante la prueba con una regla marcada `TEMP-iperf3` y la quita al
-terminar (el informe confirma que no queda ninguna).
+Las dos pruebas abren un puerto solo mientras dura la medición: `medir-red.sh` usa una regla `TEMP-iperf3` en el host
+y `medir-wg1.sh` otra de runtime en el droplet (solo para `10.10.51.2`), instala `iperf3` allí y al terminar borra la
+regla y desinstala el paquete (se verifica que no queda ninguna ni el paquete: `dpkg-query` con el estado real, porque
+`dpkg -s` da un falso positivo con paquetes removidos).
 
 ## 2. Latencia de la API por la VPN (`scripts/latencia-api.sh`, `evidencia/dia6/latencia-segmentada.md`)
 

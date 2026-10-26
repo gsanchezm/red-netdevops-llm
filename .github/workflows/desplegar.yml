@@ -1,7 +1,11 @@
 ---
-# Despliegue manual con aprobación (D7, D8). Corre en el runner autohospedado de la Dell (WSL): solo abre
-# conexiones salientes hacia GitHub y llega al droplet por la VPN. Aplicar exige la aprobación de un revisor
-# del Environment `produccion-lab`; primero siempre se simula.
+# Despliegue manual con aprobación (D7, D8) del DROPLET. Corre en el runner autohospedado de la Dell (WSL), que solo abre
+# conexiones salientes hacia GitHub y llega al droplet por la VPN con el usuario `deploy`. Primero se simula; aplicar
+# exige la aprobación de un revisor del Environment `produccion-lab`.
+#
+# Solo se despliega el droplet. El rol `lab` modifica la propia Dell como root y no se delega al runner: darle root
+# sobre el equipo donde vive sería el mayor riesgo de todo el diseño. Ese rol se aplica a mano:
+#   sudo scripts/desplegar.sh aplicar lab
 name: desplegar
 
 on:
@@ -16,23 +20,23 @@ concurrency:
 
 jobs:
   simular:
-    name: Simulación (--check --diff, no cambia nada)
+    name: Simulación del droplet (--check --diff, no cambia nada)
     if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted, redes-lab]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - name: Simular el despliegue
-        run: scripts/desplegar.sh simular
+      - name: Simular el despliegue del droplet
+        run: scripts/desplegar.sh simular hub
 
   aplicar:
-    name: Aplicar (requiere aprobación)
+    name: Aplicar en el droplet (requiere aprobación)
     needs: simular
     if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted, redes-lab]
     environment: produccion-lab
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - name: Aplicar el despliegue
-        run: scripts/desplegar.sh aplicar
-      - name: Matriz de alcanzabilidad tras el despliegue
-        run: scripts/matriz.sh segmentada "$RUNNER_TEMP/matriz-tras-despliegue.md"
+      - name: Aplicar el despliegue del droplet
+        run: scripts/desplegar.sh aplicar hub
+      - name: Comprobar que el droplet sigue sano (pares de wg1 y firewall)
+        run: scripts/verificar-hub.sh
