@@ -17,10 +17,20 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
+      # La imagen de GitHub trae su propio Ansible (2.21): mezclarlo con el de apt rompe el entorno. Se instalan en un
+      # entorno virtual y con las versiones fijadas, las mismas con las que se desarrolla en la Dell.
       - name: Instalar herramientas
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends ansible-core ansible-lint yamllint shellcheck nftables
+          sudo apt-get install -y -qq --no-install-recommends yamllint shellcheck nftables python3-venv
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet ansible-core==2.16.3 ansible-lint==6.17.2
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      - name: Versiones
+        run: |
+          ansible --version | head -1
+          ansible-lint --version | head -1
 
       - name: yamllint
         run: yamllint .
