@@ -1,0 +1,24 @@
+# enlace-negociado.txt - 2026-10-26 09:33:40 -06:00
+Lectura (Get-NetAdapter y Get-NetAdapterAdvancedProperty) en la Dell G15, que es también la PC de administración (pc-admin).
+Solo lectura: no se cambió ninguna configuración. La dirección MAC no se imprime.
+
+== Adaptadores físicos
+
+Name     InterfaceDescription                     Status       LinkSpeed FullDuplex
+----     --------------------                     ------       --------- ----------
+Ethernet Killer E2600 Gigabit Ethernet Controller Up           1 Gbps          True
+Wi-Fi    Intel(R) Wi-Fi 6 AX201 160MHz            Disconnected 0 bps           True
+
+== Ethernet (el único adaptador cableado)
+Tarjeta:                    Killer E2600 Gigabit Ethernet Controller
+Estado:                     Up / Connected
+Velocidad negociada:        1 Gbps
+Dúplex completo:            True
+Ajuste Velocidad y Dúplex:  Negociación automática
+Valores que la tarjeta admite: Negociación automática | 10 Mbps Half Dúplex | 10 Mbps Full Dúplex | 100 Mbps Half Dúplex | 100 Mbps Full Dúplex | 1.0 Gbps Full Dúplex
+
+== Lectura
+- La tarjeta no ofrece 2.5 Gbps entre sus valores válidos: su máximo es 1.0 Gbps Full Dúplex.
+- Con negociación automática el enlace quedó en 1 Gbps, aunque el conmutador sea de 2.5 GbE.
+- Al momento de la lectura el Wi-Fi estaba desconectado, de modo que el tráfico de la Dell iba por cable.
+- No se usó ethtool desde WSL: en WSL2 la interfaz eth0 es un adaptador virtual y no refleja el puerto físico.

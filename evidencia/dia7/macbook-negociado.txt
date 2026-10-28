@@ -1,0 +1,21 @@
+# macbook-negociado.txt - 2026-10-26, transcrito de la salida que pegó el autor desde la Terminal de la MacBook
+Comando: sw_vers; for i in $(ifconfig -l); do ip=$(ipconfig getifaddr $i 2>/dev/null); [ -n "$ip" ] && echo "$i  $ip  $(ifconfig $i | grep media)"; done
+Solo lectura. La MacBook no se pudo leer desde la Dell: el nombre del equipo de la línea de comandos se omite.
+
+== Antes de conectar el cable (primera lectura)
+ProductName:        macOS
+ProductVersion:        26.5.2
+BuildVersion:        25F84
+en0  192.168.68.119      media: autoselect
+(en0 es el Wi-Fi: sin velocidad en `media`. Esa lectura NO sirve para medir el cable y no se usó.)
+
+== Con el adaptador de Ethernet conectado y el Wi-Fi apagado (la que se usó en la medición)
+ProductName:        macOS
+ProductVersion:        26.5.2
+BuildVersion:        25F84
+en8  192.168.68.166      media: autoselect (1000baseT <full-duplex>)
+
+== Lectura
+- La MacBook negocia 1000baseT en dúplex completo (1 Gbps) por un adaptador de Ethernet (en8).
+- Era la única interfaz con IP: el Wi-Fi estaba apagado, de modo que el tráfico de la prueba no pudo ir por Wi-Fi.
+- Lo único que se sabe del adaptador es lo que reporta macOS; no se registró su modelo ni su capacidad máxima.

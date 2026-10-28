@@ -47,6 +47,7 @@ evidencia/
   dia4/               Regiones, VPN emulada y real, capturas del iPhone (con un README que las indexa)
   dia5/               Despliegue con Ansible
   dia6/               Mediciones de red, latencia de la API, modelo de 4 B y evaluación de Hermes (con índice)
+  dia7/               Enlace físico: velocidad negociada y TCP entre dos equipos cableados (con índice)
 scripts/
   linea-base.ps1      Captura de la línea base en Windows (solo lectura)
   ping-regiones.ps1   Latencia hacia droplets de prueba para elegir la región (Día 4)
@@ -59,6 +60,7 @@ scripts/
   desplegar.sh        Ansible: lint, simular (--check --diff) y aplicar (Día 5)
   escanear-secretos.sh   Busca IP reales y llaves en lo versionado (el repositorio es público)
   medir-red.sh, medir-wg1.sh   ICMP e iperf3: plana vs segmentada, costo de WireGuard y rendimiento real por wg1 (Día 6)
+  medir-enlace.sh     iperf3 y ping por el cable entre la Dell y otro equipo cableado al mismo conmutador (Día 7)
   verificar-hub.sh    Comprueba que el droplet sigue sano tras un despliegue (Día 5)
   snapshot.sh, hermes-evaluar.sh, proponer-pr.sh   Hermes: leer un snapshot, evaluar su calidad y proponer un PR (Día 6)
 ```
