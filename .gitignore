@@ -34,8 +34,8 @@ caddy-data/
 __pycache__/
 .venv/
 
-# Reporte final (Día 7): las dependencias de Node se reinstalan con npm install
-reporte/node_modules/
+# Reporte final (Día 7): el documento vive solo en la copia local del autor y no se versiona
+reporte/
 
 # Sistema / editores
 .DS_Store
